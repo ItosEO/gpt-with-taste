@@ -26,14 +26,15 @@
 
 ## Install
 
-You need Node.js 22 or newer and a local clone of this repository. Nothing from npm.
+With Node.js 22 or newer installed:
 
 ```sh
-node scripts/install.mjs --hooks   # recommended: prompt + per-turn steering
-node scripts/install.mjs           # prompt-only, a complete install too
+git clone https://github.com/NB-Corp/gpt-with-taste.git
+cd gpt-with-taste
+node scripts/install.mjs --hooks
 ```
 
-We recommend Hooks for multi-turn work: they bring the behavioral priorities back into focus after each user message. Choose prompt-only if you prefer the system instructions alone.
+We recommend Hooks for multi-turn work: they bring the behavioral priorities back into focus after each user message. For a complete prompt-only installation, use `node scripts/install.mjs` instead. No npm packages are needed.
 
 Both routes install into your active `CODEX_HOME` (otherwise `~/.codex`), write the two managed prompt files, and point the top-level `model_instructions_file` at the main one. Your model, provider, effort, authentication, permissions, MCP servers, roles, and `AGENTS.md` stay exactly as they are. To target another home, add `--home` with a quoted absolute path, e.g. `--home "C:/Users/you/.codex"`.
 

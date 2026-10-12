@@ -54,7 +54,7 @@ Both chose `tailwind-merge` with `clsx`, put the caller's `className` last, and 
 
 The built-in answer is already useful and shorter. We keep Taste's action-first opening and concrete modifier examples; they make the technique easier to apply. The extra props type is useful for a TypeScript guide, while a narrower class-merging example can omit it.
 
-A remaining habit appears in both closing replies. Taste adds “`.codex/` remains untouched”; the built-in answer adds “working tree is clean.” Those status lines answer no question in this documentation request. The next refinement is to finish with the usable result and its relevant checks, leaving routine preservation reports in the work record.
+A remaining habit appears in both closing replies. Taste adds “`.codex/` remains untouched”; the built-in answer adds “working tree is clean.” Those status lines answer no question in this documentation request. We refined the existing prompt and Steer around this example: finish with the usable result and relevant evidence, keep routine preservation reports in the work record, and surface preserved state when requested or when it changes use, acceptance, or recovery.
 
 **What this taught us:** inspect the actual passage rather than awarding a blanket win. Keep the explanation and examples that help the reader; remove the extra bookkeeping that does not.
 

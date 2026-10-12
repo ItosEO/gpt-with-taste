@@ -26,14 +26,15 @@
 
 ## 安装
 
-需要 Node.js 22 或更高版本，以及本仓库的一份本地克隆；不依赖任何 npm 包。
+安装 Node.js 22 或更高版本后，运行：
 
 ```sh
-node scripts/install.mjs --hooks   # 推荐：提示词 + 每轮转向提醒
-node scripts/install.mjs           # 纯提示词，同样是完整安装
+git clone https://github.com/NB-Corp/gpt-with-taste.git
+cd gpt-with-taste
+node scripts/install.mjs --hooks
 ```
 
-推荐为多轮任务安装 Hooks：每条用户消息后，重新将关键行为送到当前上下文。偏好只用系统提示词，就选第二条路线。
+推荐为多轮任务安装 Hooks：每条用户消息后，重新将关键行为送到当前上下文。偏好只用系统提示词，就把安装命令换成 `node scripts/install.mjs`，同样是完整路线。两种安装都不依赖 npm 包。
 
 两条路线都装入当前生效的 `CODEX_HOME`（未设置时为 `~/.codex`），写入两个受管提示词文件，并把顶层 `model_instructions_file` 指向 main。你的模型、provider、effort、认证、权限、MCP、角色与 `AGENTS.md` 全部原样保留。要装到别处，追加 `--home` 与带引号的绝对路径，如 `--home "C:/Users/you/.codex"`。
 
