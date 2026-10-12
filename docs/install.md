@@ -52,7 +52,7 @@ The installer assembles author sources into `CODEX_HOME/gpt-with-taste/marketpla
 
 The Node command uses the recorded executable and `${PLUGIN_ROOT}/hooks/steer.mjs`, with a 15-second timeout. The script reads adjacent `prompts/` files. It adds developer context without rewriting the task, tool arguments or result; shell/MCP output is not a reminder channel.
 
-Open Codex's interactive terminal UI with the same `CODEX_HOME`, then use `/hooks`. Review and trust only the `UserPromptSubmit`, `SubagentStart` and `PostToolUse` definitions from `gpt-with-taste@gpt-with-taste-local`, each pointing to this plugin's `hooks/steer.mjs`. Installation enables the plugin but does not approve its commands. Codex records approval for the exact current definition; changed definitions need review again. Keep Node at its recorded path; if it moves, restore and reinstall with the new Node executable.
+In Codex Desktop, open **Settings → Hooks** with the same `CODEX_HOME`; in the interactive terminal, use `/hooks`. Review and trust only the `UserPromptSubmit`, `SubagentStart` and `PostToolUse` definitions from `gpt-with-taste@gpt-with-taste-local`, each pointing to this plugin's `hooks/steer.mjs`. Installation enables the plugin but does not approve its commands. Codex records approval for the exact current definition; changed definitions need review again. Keep Node at its recorded path; if it moves, restore and reinstall with the new Node executable.
 
 `--check` verifies managed files, registration/enabled state and recorded cache bytes. It does not verify trust approval or event delivery, and it sends no model request.
 

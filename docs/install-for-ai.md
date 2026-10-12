@@ -35,7 +35,7 @@ Supply `--codex "/absolute/path/to/codex"` when it is not on PATH. The installer
 
 The three configured routes are user input to main, subagent input/startup to the child, and completed `wait_agent` receipts to main. Original tasks and tool results remain intact. Shell/MCP results, incomplete waits and `SubagentStop` are not main-result reminder channels.
 
-Have the user open Codex's interactive terminal UI with the same `CODEX_HOME` and use `/hooks`. They should review and trust only this plugin's `UserPromptSubmit`, `SubagentStart` and `PostToolUse` definitions pointing to its `hooks/steer.mjs`; changed definitions need review again.
+Have the user open Codex Desktop's **Settings → Hooks** with the same `CODEX_HOME`, or use `/hooks` in the interactive terminal. They should review and trust only this plugin's `UserPromptSubmit`, `SubagentStart` and `PostToolUse` definitions pointing to its `hooks/steer.mjs`; changed definitions need review again.
 
 The tested version's public app-server schema provides `hooks/list`, not a Hook trust-approval method. Do not substitute generic command approval, invent trust hashes or set a global bypass. `--check` verifies files and plugin installation state, not trust or delivery.
 
