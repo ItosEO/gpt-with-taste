@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360">
+  <defs>
+    <style>
+      .lane { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2.2px; }
+      .before { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14.5px; font-weight: 400; fill: #5A606D; }
+      .after { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14.5px; font-weight: 600; fill: #1C1E21; }
+      .voice { font-family: Georgia, 'Times New Roman', serif; font-size: 15px; font-style: italic; fill: #5A606D; }
+    </style>
+  </defs>
+
+  <!-- Canvas -->
+  <rect width="960" height="360" rx="14" fill="#FBF9F5"/>
+  <rect x="0.75" y="0.75" width="958.5" height="358.5" rx="13" fill="none" stroke="#E6E2D8" stroke-width="1.5"/>
+
+  <!-- Lane headers -->
+  <text x="64" y="50" class="lane" fill="#824734">DEFAULT BEHAVIOR</text>
+  <text x="508" y="50" class="lane" fill="#1D6B4F">GPT WITH TASTE</text>
+
+  <!-- Header rule and column divider -->
+  <rect x="64" y="66" width="832" height="1" fill="#D8D2C2"/>
+  <line x1="480" y1="34" x2="480" y2="328" stroke="#E6E2D8" stroke-width="1"/>
+
+  <!-- Row 1 -->
+  <text x="64" y="100" class="voice">“Should I proceed? Option A or B?”</text>
+  <text x="508" y="100" class="after">Picks the sensible default and says why</text>
+  <rect x="64" y="120" width="832" height="1" fill="#F0EDE4"/>
+
+  <!-- Row 2 -->
+  <text x="64" y="154" class="before">Softens solid claims to pre-empt critics</text>
+  <text x="508" y="154" class="after">Keeps grounded claims, drops self-defense</text>
+  <rect x="64" y="174" width="832" height="1" fill="#F0EDE4"/>
+
+  <!-- Row 3 -->
+  <text x="64" y="208" class="before">Forwards raw logs and agent receipts</text>
+  <text x="508" y="208" class="after">Digests the noise, reports the delta</text>
+  <rect x="64" y="228" width="832" height="1" fill="#F0EDE4"/>
+
+  <!-- Row 4 -->
+  <text x="64" y="262" class="before">Purple gradients and three-card layouts</text>
+  <text x="508" y="262" class="after">Hierarchy, whitespace, restraint</text>
+  <rect x="64" y="282" width="832" height="1" fill="#F0EDE4"/>
+
+  <!-- Row 5 -->
+  <text x="64" y="316" class="before">Stalls at half-finished states</text>
+  <text x="508" y="316" class="after">Delivers verified, operable slices</text>
+</svg>

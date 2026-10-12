@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 240" width="960" height="240">
+  <defs>
+    <style>
+      .kicker { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2.4px; }
+      .display { font-family: Georgia, 'Times New Roman', serif; font-size: 56px; font-weight: 400; }
+      .tagline { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; font-size: 19px; font-weight: 600; letter-spacing: 0.2px; }
+    </style>
+  </defs>
+
+  <!-- Canvas -->
+  <rect width="960" height="240" rx="14" fill="#FBF9F5"/>
+  <rect x="0.75" y="0.75" width="958.5" height="238.5" rx="13" fill="none" stroke="#E6E2D8" stroke-width="1.5"/>
+
+  <!-- Masthead kicker -->
+  <text x="64" y="54" class="kicker" fill="#5A606D">OPENAI CODEX 系统行为提示词</text>
+  <text x="896" y="54" text-anchor="end" class="kicker" fill="#C84824">GPT-6.1 SOL · GPT-6 ASTRA</text>
+
+  <!-- Masthead double rule -->
+  <rect x="64" y="66" width="832" height="3" fill="#1C1E21"/>
+  <rect x="64" y="73" width="832" height="1" fill="#1C1E21"/>
+
+  <!-- Wordmark -->
+  <text x="62" y="148" class="display" fill="#1C1E21">GPT with <tspan font-style="italic" fill="#C84824">Taste</tspan></text>
+
+  <!-- Tagline -->
+  <text x="64" y="192" class="tagline" fill="#1C1E21">敢做判断<tspan fill="#C84824">。</tspan>保有审美<tspan fill="#C84824">。</tspan>少些繁文礼节<tspan fill="#C84824">。</tspan></text>
+
+  <!-- Printer's device: the judgment instrument -->
+  <g transform="translate(724, 84) scale(1.12)">
+    <circle cx="60" cy="60" r="44" fill="none" stroke="#CFC8B8" stroke-width="2" stroke-dasharray="2 7" stroke-linecap="round"/>
+    <path d="M 60 22 L 60 98" stroke="#CFC8B8" stroke-width="1.5"/>
+    <path d="M 22 60 L 98 60" stroke="#CFC8B8" stroke-width="1.5"/>
+    <path d="M 44 74 C 52 68, 68 68, 76 46" fill="none" stroke="#C84824" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="60" cy="60" r="5" fill="#C84824"/>
+    <circle cx="60" cy="40" r="3" fill="#1C1E21"/>
+    <circle cx="60" cy="80" r="3" fill="#1C1E21"/>
+  </g>
+</svg>

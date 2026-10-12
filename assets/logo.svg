@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <defs>
+    <style>
+      .logo-bg { fill: #FBF9F5; }
+      .logo-border { stroke: #E6E2D8; stroke-width: 1.5; fill: none; }
+      .logo-ring { stroke: #CFC8B8; }
+      .logo-ink { fill: #1C1E21; }
+      .logo-accent { fill: #C84824; }
+      .logo-accent-stroke { stroke: #C84824; }
+
+      @media (prefers-color-scheme: dark) {
+        .logo-bg { fill: #0D1117; }
+        .logo-border { stroke: #30363D; }
+        .logo-ring { stroke: #39414B; }
+        .logo-ink { fill: #F0F6FC; }
+        .logo-accent { fill: #FF7B54; }
+        .logo-accent-stroke { stroke: #FF7B54; }
+      }
+    </style>
+  </defs>
+
+  <rect width="160" height="160" rx="34" class="logo-bg"/>
+  <rect x="1" y="1" width="158" height="158" rx="33" class="logo-border"/>
+
+  <!-- The judgment instrument -->
+  <g transform="translate(20, 20)">
+    <circle cx="60" cy="60" r="44" fill="none" class="logo-ring" stroke-width="2" stroke-dasharray="2 7" stroke-linecap="round"/>
+    <path d="M 60 22 L 60 98" class="logo-ring" stroke-width="1.5"/>
+    <path d="M 22 60 L 98 60" class="logo-ring" stroke-width="1.5"/>
+    <path d="M 44 74 C 52 68, 68 68, 76 46" fill="none" class="logo-accent-stroke" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="60" cy="60" r="5" class="logo-accent"/>
+    <circle cx="60" cy="40" r="3" class="logo-ink"/>
+    <circle cx="60" cy="80" r="3" class="logo-ink"/>
+  </g>
+</svg>

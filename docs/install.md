@@ -25,16 +25,20 @@ Other configuration stays unchanged: model, effort, provider, catalog, authentic
 
 ## Add optional per-turn steering
 
-If your Codex version supports `UserPromptSubmit` hooks and `hooks.json`, opt in explicitly:
+We recommend Hooks for everyday multi-turn work. The system prompt establishes the complete behavior; the Hook places a fresh reminder next to each submitted user request. That reminder reconnects the task to its purpose and reinforces ordinary judgment, selective collaboration, focused checks, and reader-useful writing as the conversation grows.
+
+If your Codex version supports `UserPromptSubmit` hooks and `hooks.json`, install with:
 
 ```sh
 node scripts/install.mjs --home "/absolute/path/to/.codex" --hooks
 node scripts/install.mjs --check --home "/absolute/path/to/.codex"
 ```
 
-This also deploys `hooks/steer.mjs` and `prompts/user-steer.md` under `CODEX_HOME/gpt-with-taste/`, preserving their relative layout. It adds one `UserPromptSubmit` group to `hooks.json`, with a 15-second timeout and a command using this installation's absolute Node executable and script path. Other groups and events remain in place. `SubagentStart` is not installed.
+This deploys `hooks/steer.mjs` and `prompts/user-steer.md` under `CODEX_HOME/gpt-with-taste/`, preserving their relative layout. One `UserPromptSubmit` command reads that text and returns it as developer context before Codex sends the request. The command uses this installation's absolute Node executable and script path, with a 15-second timeout. Other hook groups remain in place.
 
-Review and approve that command through your Codex version's hook-trust flow. Installing the files does not grant trust: the installer writes no trust key and enables no trust bypass. Keep Node at the recorded executable path. If you move Node, restore this installation and reinstall using the new executable.
+Open `/hooks` in Codex and review and trust the installed command. Codex then runs it on user submissions. Keep Node at the recorded executable path; if you move Node, restore this installation and reinstall using the new executable.
+
+This package currently connects the user-input route. The separate `sub-steer.md` and `agent-steer.md` sources are available for integrations that target delegated agents and the main agent receiving their results; see the [prompt map](prompt-map.md).
 
 ## Update or resolve a conflict
 

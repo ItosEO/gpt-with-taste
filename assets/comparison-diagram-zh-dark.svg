@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360">
+  <defs>
+    <style>
+      .lane { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2.2px; }
+      .lane-latin { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2.2px; }
+      .before { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 14.5px; font-weight: 400; fill: #8B949E; }
+      .after { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 14.5px; font-weight: 600; fill: #F0F6FC; }
+    </style>
+  </defs>
+
+  <!-- Canvas -->
+  <rect width="960" height="360" rx="14" fill="#0D1117"/>
+  <rect x="0.75" y="0.75" width="958.5" height="358.5" rx="13" fill="none" stroke="#30363D" stroke-width="1.5"/>
+
+  <!-- Lane headers -->
+  <text x="64" y="50" class="lane" fill="#F0886C">默认行为</text>
+  <text x="508" y="50" class="lane-latin" fill="#56D39D">GPT WITH TASTE</text>
+
+  <!-- Header rule and column divider -->
+  <rect x="64" y="66" width="832" height="1" fill="#30363D"/>
+  <line x1="480" y1="34" x2="480" y2="328" stroke="#30363D" stroke-width="1"/>
+
+  <!-- Row 1 -->
+  <text x="64" y="100" class="before">“是否继续？选 A 还是 B？”</text>
+  <text x="508" y="100" class="after">采用合理默认，并说明理由</text>
+  <rect x="64" y="120" width="832" height="1" fill="#21262D"/>
+
+  <!-- Row 2 -->
+  <text x="64" y="154" class="before">为假想中的批评软化有据主张</text>
+  <text x="508" y="154" class="after">保留有据主张，删掉自我辩护</text>
+  <rect x="64" y="174" width="832" height="1" fill="#21262D"/>
+
+  <!-- Row 3 -->
+  <text x="64" y="208" class="before">把原始日志与回执原样转发</text>
+  <text x="508" y="208" class="after">消化噪音，只同步关键增量</text>
+  <rect x="64" y="228" width="832" height="1" fill="#21262D"/>
+
+  <!-- Row 4 -->
+  <text x="64" y="262" class="before">紫色渐变与三卡片模板</text>
+  <text x="508" y="262" class="after">层级、留白与克制</text>
+  <rect x="64" y="282" width="832" height="1" fill="#21262D"/>
+
+  <!-- Row 5 -->
+  <text x="64" y="316" class="before">停在半成品状态等待指示</text>
+  <text x="508" y="316" class="after">交付验证过、可操作的切片</text>
+</svg>
