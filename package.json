@@ -1,0 +1,13 @@
+{
+  "name": "gpt-with-taste",
+  "version": "0.1.0",
+  "private": true,
+  "description": "System instructions and optional per-turn steering for OpenAI Codex",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test scripts/install.test.mjs hooks/steer.test.mjs",
+    "install:codex": "node scripts/install.mjs"
+  }
+}
