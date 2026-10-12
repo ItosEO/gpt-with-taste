@@ -1,0 +1,11 @@
+{
+  "name": "gpt-with-taste-local",
+  "plugins": [
+    {
+      "name": "gpt-with-taste",
+      "source": { "source": "local", "path": "./plugins/gpt-with-taste" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Developer Tools"
+    }
+  ]
+}

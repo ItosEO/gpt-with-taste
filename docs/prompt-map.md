@@ -49,6 +49,14 @@ The files are literal English instruction sources. They require no base-prompt p
 
 The sources refer to the current Codex tools, schemas, role restrictions, and event behavior rather than naming tools from another host. They do not assume a message wakes or interrupts a recipient, grants approval, or proves consumption. Notification-driven continuation applies when the runtime guarantees completion notifications; waiting follows the supported tool contract and a real dependency. A child resolves its promised dependencies before its final result.
 
-The [optional hook](install.md#add-optional-per-turn-steering) delivers one complete copy of `user-steer.md` on `UserPromptSubmit`. A native Codex 0.162.0-alpha.17.2 session with GPT-6.1 Sol loaded the complete main instructions for a documentation task, then received that Steer on a Chinese follow-up and delivered the extracted component and explanation in Chinese. The rollout recorded the complete main source and one Steer copy.
+Selecting [optional hooks](install.md#add-optional-per-turn-steering) assembles the single author sources into a local marketplace and installs `gpt-with-taste@gpt-with-taste-local` through the normal Codex plugin CLI. The plugin configures three source-specific routes:
 
-`sub-steer.md` and `agent-steer.md` are supplied for integrations that can target their intended readers. The installer connects only `UserPromptSubmit`; delegated agents and collaborator-result events rely on the corresponding complete prompt unless you configure a supported source-specific integration.
+- `UserPromptSubmit`: `user-steer.md` addresses the current main session; a subagent event carrying `agent_id` selects `sub-steer.md` instead.
+- `SubagentStart`: `sub-steer.md` is developer context for the new delegated agent, alongside its actual role and task.
+- `PostToolUse` with exact matcher `^wait_agent$`: `agent-steer.md` addresses main only when the result's `status` contains a completed agent receipt. The original receipt stays intact. A spawn id, incomplete/time-out wait, shell/MCP result or child-session tool result does not select this source.
+
+`SubagentStop` controls continuation inside the delegated agent; it is not a channel for delivering a reminder to main. The Hook does not replace roles, rewrite a dispatch message, or claim that an automatic completion notification is a `PostToolUse` event. Parent follow-ups are covered only when the host emits a subagent-identified `UserPromptSubmit`; no `send_input` argument rewrite is installed. The complete `sub.md` remains available for roles the user chooses.
+
+The plugin's three definitions are installed and discoverable, but none delivered reminders in the tested Codex `0.162.0-alpha.17.2` `exec resume` workflow. For that entry point, rely on the complete main prompt rather than optional per-turn reminders. `--check` verifies installation, not runtime dispatch.
+
+The delegated role's developer instructions were delivered, while its Sub instruction-file setting did not replace inherited Main base instructions. Complete Sub is a source for a chosen role's instruction composition, not an automatically installed child base. Follow [role setup](install.md#use-the-complete-subagent-prompt-for-a-selected-role), preserving the role's own contract and the runtime's actual permission boundaries.

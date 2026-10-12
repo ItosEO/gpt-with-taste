@@ -1,22 +1,30 @@
 # Restore the previous Codex instructions
 
-Use the same clone and Codex home that performed the installation:
+Use the same clone and Codex home that performed the installation. If you installed the optional plugin, its recorded Codex CLI must be available even for the preview; otherwise add `--codex "/absolute/path/to/codex"` to both commands:
 
 ```sh
 node scripts/install.mjs --restore --home "/absolute/path/to/.codex" --dry-run
 node scripts/install.mjs --restore --home "/absolute/path/to/.codex"
 ```
 
-The installer restores the original `model_instructions_file` line, or removes it if it was absent. It restores previous bytes at managed file targets and removes files it created. If you opted into hooks, it restores only its exact `UserPromptSubmit` group and optional runtime files. Other hook groups and later unrelated config changes remain.
+The installer restores the original `model_instructions_file` line, or removes it if absent. It restores previous bytes at managed file targets and removes files it created. Other config keys, user Hooks and later unrelated changes remain.
 
-Repeated installs and source updates keep the original recovery baseline. A successful restore marks the single `.gpt-with-taste/install-receipt.json` receipt as restored. A later install starts a new baseline. Source history belongs in Git; the receipt is ignored machine-local state. Keep it private and keep the original clone until recovery is no longer needed.
+Plugin recovery removes `gpt-with-taste@gpt-with-taste-local` and its owned marketplace through Codex's normal remove commands. Review any Hook trust you approved through Codex `/hooks`; the installer does not change trust records. Prompt-only and legacy-only recovery do not require the plugin CLI.
+
+Repeated installs and source updates keep the original recovery baseline. Successful recovery marks the single `.gpt-with-taste/install-receipt.json` as restored. A later install starts a new baseline. The receipt is ignored machine-local state; keep it private and keep the clone until recovery is no longer needed.
+
+## Older Hook receipts
+
+To migrate a receipt-managed user Hook installation, rerun `node scripts/install.mjs --home "/absolute/path/to/.codex" --hooks`. The installer retires only its recorded event-and-exact-command groups before enabling the plugin, preventing duplicate reminders. Their original recovery values remain in the receipt, and unrelated Hooks stay in place.
+
+Restore returns those groups to their original pre-install values, not to the intermediate legacy installation. Any matching Hook that existed before the first installation is restored. Original managed file and instruction-line baselines are preserved across migration. You can also restore an old receipt directly without the new plugin sources or Codex plugin CLI.
 
 ## If recovery reports drift
 
-Recovery checks all managed items before changing any of them. If someone edited a managed prompt, the managed config line, or the installed hook group, it stops without overwriting that change. `--replace-managed` does not bypass this protection.
+Recovery checks managed files, the instruction line, receipt-owned legacy Hook groups and the plugin's registered root, enabled state and recorded cache bytes before removing or overwriting them. If someone changed a managed item, it stops. `--replace-managed` does not bypass drift protection.
 
-Keep the receipt. Save any edits you want to retain, then reconcile the reported item with its installed state recorded in the receipt and rerun restore. Config comparison concerns only the managed line; unrelated lines need no reconciliation. Hook comparison concerns only the exact installed command group; other groups need no reconciliation. Managed file bytes are recorded as base64 in `files[].after`; original bytes are in `files[].before` (`null` means the file did not exist).
+Keep the receipt. Save wanted edits, reconcile the named item with the installed state recorded there, and rerun restore. Unrelated config lines and other Hook groups need no reconciliation. Managed source bytes are in `files[].after`; their original bytes are in `files[].before` (`null` means absent). Plugin cache bytes are recorded separately in `plugin.cacheFiles`; Codex removes its own installed cache through the CLI.
 
-If the operation was interrupted, its receipt remains marked `applying` or `restoring`. Rerun `--restore`; it accepts items already at their recorded original, installed, or interrupted-update state. Writes re-read their targets before replacement, so concurrent changes produce a conflict rather than a silent overwrite.
+An interrupted operation remains marked `applying` or `restoring`. Rerun `--restore`; it accepts recorded original, installed and interrupted-update states, including a partially removed plugin. File replacements re-read their targets first, so concurrent file edits produce a conflict rather than a silent overwrite. CLI failures keep the recovery receipt for another attempt.
 
-If the receipt is lost, Git can recover the repository's source but cannot reconstruct this machine's previous config value or overwritten target bytes. Re-select your earlier instruction file manually; do not delete unrelated Codex config or hook files.
+If the receipt is lost, Git can recover repository source but cannot reconstruct previous machine-local values or overwritten target bytes. Re-select the earlier instruction file manually; do not delete unrelated config, marketplaces or Hook files.

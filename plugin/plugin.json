@@ -1,0 +1,7 @@
+{
+  "name": "gpt-with-taste",
+  "version": "0.1.0",
+  "description": "Source-aware user, subagent and completed-agent steering for Codex.",
+  "license": "MIT",
+  "hooks": "./hooks/hooks.json"
+}

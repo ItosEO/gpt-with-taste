@@ -2,199 +2,97 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
-import { run } from './install.mjs';
-import { setInstructions } from '../src/toml-overlay.mjs';
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const scratch = path.join(repo, '.tmp/install-test');
-const receipt = root => path.join(root, '.gpt-with-taste/install-receipt.json');
-async function put(file, text) { await fs.mkdir(path.dirname(file), { recursive: true }); await fs.writeFile(file, text); }
-async function exists(file) { return fs.access(file).then(() => true, () => false); }
-async function fixture(t) {
-  await fs.mkdir(scratch, { recursive: true });
-  const dir = await fs.mkdtemp(path.join(scratch, 'case-'));
-  t.after(() => fs.rm(dir, { recursive: true, force: true }));
-  const root = path.join(dir, 'clone');
-  const home = path.join(dir, 'Codex Home');
-  await fs.mkdir(home, { recursive: true });
-  await put(path.join(root, 'prompts/main.md'), 'FIXTURE MAIN — no behavioral claim\n');
-  await put(path.join(root, 'prompts/sub.md'), 'FIXTURE SUB\n');
-  await put(path.join(root, 'prompts/user-steer.md'), 'FIXTURE USER STEER\n');
-  await fs.mkdir(path.join(root, 'hooks'), { recursive: true });
-  await fs.copyFile(path.join(repo, 'hooks/steer.mjs'), path.join(root, 'hooks/steer.mjs'));
-  const call = (...args) => run(['--home', home, ...args], root);
-  return { root, home, call };
+import {fileURLToPath} from 'node:url';
+import {run} from './install.mjs';
+import {setInstructions} from '../src/toml-overlay.mjs';
+import {hookGroup, installHook, ROUTES} from '../src/hooks-overlay.mjs';
+import {MARKET, MARKET_ROOT, ID} from '../src/codex-plugin.mjs';
+const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const scratch=path.join(repo,'.tmp/install-test');
+const receipt=root=>path.join(root,'.gpt-with-taste/install-receipt.json');
+async function put(file,text){await fs.mkdir(path.dirname(file),{recursive:true});await fs.writeFile(file,text);}
+async function exists(file){return fs.access(file).then(()=>true,()=>false);}
+async function fixture(t){
+  await fs.mkdir(scratch,{recursive:true});const dir=await fs.mkdtemp(path.join(scratch,'case-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+  const root=path.join(dir,'clone'),home=path.join(dir,'Codex Home');await fs.mkdir(home,{recursive:true});
+  for(const [name,text]of Object.entries({main:'FIXTURE MAIN — no behavioral claim',sub:'FIXTURE SUB','user-steer':'FIXTURE USER STEER','sub-steer':'FIXTURE SUB STEER','agent-steer':'FIXTURE AGENT STEER'}))await put(path.join(root,`prompts/${name}.md`),text+'\n');
+  for(const file of ['hooks/steer.mjs','plugin/plugin.json','plugin/marketplace.json'])await put(path.join(root,file),await fs.readFile(path.join(repo,file)));
+  const state={market:null,plugin:null},calls=[];
+  const api={
+    async inventory(){calls.push('inventory');return structuredClone(state);},
+    async install(marketRoot){calls.push('install');state.market={name:MARKET,root:marketRoot};state.plugin={pluginId:ID,installed:true,enabled:true};const installedPath=path.join(home,'plugins','cache',MARKET,'gpt-with-taste','0.1.0');await fs.rm(installedPath,{recursive:true,force:true});await fs.cp(path.join(marketRoot,'plugins','gpt-with-taste'),installedPath,{recursive:true});return {installedPath};},
+    async remove(){calls.push('remove');state.plugin=null;await fs.rm(path.join(home,'plugins','cache',MARKET),{recursive:true,force:true});},
+    async removeMarket(){calls.push('removeMarket');state.market=null;},
+  };
+  const call=(...args)=>run(['--home',home,...args],root,{plugin:api});
+  return {root,home,call,state,calls,api};
 }
-const original = '\uFEFF# local config\r\nmodel = "existing-gpt"\r\nmodel_reasoning_effort = "high"\r\nmodel_instructions_file = \'old/main.md\' # preserve\r\n[model_providers.private]\r\nexperimental_bearer_token = "fixture-secret-not-real"\r\n[agents]\r\nmax_concurrent_threads_per_session = 8\r\n[agents.worker]\r\nconfig_file = "roles/worker.toml"\r\n[features]\r\nmulti_agent = true\r\n[mcp_servers.local]\r\ncommand = "fixture"\r\n';
-test('prompt-only preserves all other bytes and hooks; repeated installs retain baseline; restore preserves later unrelated edits', async t => {
-  const { root, home, call } = await fixture(t);
-  await put(path.join(home, 'config.toml'), original);
-  const hookText = '{"hooks":{"UserPromptSubmit":[{"hooks":[{"type":"command","command":"other"}]}]},"local":true}\n';
-  await put(path.join(home, 'hooks.json'), hookText);
-  await put(path.join(home, 'prompts/nia.md'), 'Nia stays');
-  await call('--dry-run');
-  assert.equal(await exists(receipt(root)), false);
-  await call();
-  assert.equal(await fs.readFile(path.join(home, 'config.toml'), 'utf8'), setInstructions(original, path.join(home, 'prompts/gpt-with-taste/main.md')));
-  assert.equal(await fs.readFile(path.join(home, 'hooks.json'), 'utf8'), hookText);
-  assert.equal(await exists(path.join(home, 'gpt-with-taste/hooks/steer.mjs')), false);
-  const baseline = await fs.readFile(receipt(root), 'utf8');
-  assert.equal(baseline.includes('fixture-secret-not-real'), false);
-  await call();
-  assert.equal(await fs.readFile(receipt(root), 'utf8'), baseline);
-  await put(path.join(root, 'prompts/main.md'), 'UPDATED FIXTURE\n');
-  await call();
-  assert.equal(JSON.parse(await fs.readFile(receipt(root))).config.before, JSON.parse(baseline).config.before);
-  await fs.appendFile(path.join(home, 'config.toml'), '[analytics]\r\nenabled = false\r\n');
-  await call('--check');
-  await call('--restore');
-  assert.equal(await fs.readFile(path.join(home, 'config.toml'), 'utf8'), original + '[analytics]\r\nenabled = false\r\n');
-  assert.equal(await exists(path.join(home, 'prompts/gpt-with-taste/main.md')), false);
-  assert.equal(await fs.readFile(path.join(home, 'hooks.json'), 'utf8'), hookText);
-  assert.equal(await fs.readFile(path.join(home, 'prompts/nia.md'), 'utf8'), 'Nia stays');
+const original='\uFEFF# local config\r\nmodel = "existing-gpt"\r\nmodel_reasoning_effort = "high"\r\nmodel_instructions_file = \'old/main.md\' # preserve\r\n[model_providers.private]\r\nexperimental_bearer_token = "fixture-secret-not-real"\r\n[agents.worker]\r\nconfig_file = "roles/worker.toml"\r\n[features]\r\nmulti_agent = true\r\n[mcp_servers.local]\r\ncommand = "fixture"\r\n';
+test('prompt-only preserves all other bytes and hooks; no Codex prerequisite; original baseline survives updates',async t=>{
+  const {root,home,call,calls}=await fixture(t);await put(path.join(home,'config.toml'),original);await put(path.join(home,'hooks.json'),'INVALID USER HOOK FILE');
+  await call('--dry-run');assert.equal(await exists(receipt(root)),false);await call();
+  assert.equal(await fs.readFile(path.join(home,'config.toml'),'utf8'),setInstructions(original,path.join(home,'prompts/gpt-with-taste/main.md')));
+  const baseline=await fs.readFile(receipt(root),'utf8');assert.equal(baseline.includes('fixture-secret'),false);await call();assert.equal(await fs.readFile(receipt(root),'utf8'),baseline);
+  await put(path.join(root,'prompts/main.md'),'UPDATED');await call();await fs.appendFile(path.join(home,'config.toml'),'[analytics]\r\nenabled = false\r\n');await call('--check');await call('--restore');
+  assert.equal(await fs.readFile(path.join(home,'config.toml'),'utf8'),original+'[analytics]\r\nenabled = false\r\n');assert.equal(await fs.readFile(path.join(home,'hooks.json'),'utf8'),'INVALID USER HOOK FILE');assert.deepEqual(calls,[]);
 });
-test('unknown managed bytes require explicit replacement and are restored exactly', async t => {
-  const { home, root, call } = await fixture(t);
-  const file = path.join(home, 'prompts/gpt-with-taste/main.md');
-  const old = Buffer.from([0, 1, 255, 13, 10]);
-  await put(file, old);
-  await assert.rejects(call(), /Unknown managed target/);
-  assert.equal(await exists(receipt(root)), false);
-  await call('--replace-managed');
-  await call();
-  await call('--restore');
-  assert.deepEqual(await fs.readFile(file), old);
-  assert.equal(await exists(path.join(home, 'config.toml')), false);
+test('unknown managed bytes require explicit replacement and restore exactly',async t=>{
+  const {home,root,call}=await fixture(t);const file=path.join(home,'prompts/gpt-with-taste/main.md'),old=Buffer.from([0,1,255,13,10]);await put(file,old);
+  await assert.rejects(call(),/Unknown managed target/);assert.equal(await exists(receipt(root)),false);await call('--replace-managed');await call('--restore');assert.deepEqual(await fs.readFile(file),old);assert.equal(await exists(path.join(home,'config.toml')),false);
 });
-test('config key and prompt drift refuse install and restore without writes', async t => {
-  const { home, root, call } = await fixture(t);
-  await call();
-  const file = path.join(home, 'prompts/gpt-with-taste/main.md');
-  const installed = await fs.readFile(file);
-  await put(file, 'USER EDIT');
-  const before = await fs.readFile(receipt(root));
-  await assert.rejects(call('--replace-managed'), /drifted/);
-  await assert.rejects(call('--restore'), /drifted/);
-  assert.deepEqual(await fs.readFile(receipt(root)), before);
-  await put(file, installed);
-  await put(path.join(home, 'config.toml'), 'model_instructions_file = "other.md"\n');
-  await assert.rejects(call('--restore'), /config key has drifted/);
-  assert.equal(await fs.readFile(file, 'utf8'), installed.toString());
+test('managed prompt/config drift stops recovery before changing state',async t=>{
+  const {home,root,call}=await fixture(t);await call();const file=path.join(home,'prompts/gpt-with-taste/main.md'),installed=await fs.readFile(file);await put(file,'USER EDIT');const before=await fs.readFile(receipt(root));await assert.rejects(call('--replace-managed'),/drifted/);await assert.rejects(call('--restore'),/drifted/);assert.deepEqual(await fs.readFile(receipt(root)),before);
+  await put(file,installed);await put(path.join(home,'config.toml'),'model_instructions_file = "other.md"\n');await assert.rejects(call('--restore'),/config key has drifted/);
 });
-test('explicit hooks add one exact command, run deployed source, preserve peer groups on restore', async t => {
-  const { home, root, call } = await fixture(t);
-  const peer = { hooks: [{ type: 'command', command: 'node other-sol-recipe-steer.mjs' }] };
-  await put(path.join(home, 'hooks.json'), JSON.stringify({ hooks: { UserPromptSubmit: [peer], Stop: [peer] }, custom: 3 }));
-  await call();
-  await call('--hooks');
-  let hooks = JSON.parse(await fs.readFile(path.join(home, 'hooks.json')));
-  assert.equal(hooks.hooks.UserPromptSubmit.length, 2);
-  const owned = hooks.hooks.UserPromptSubmit[1];
-  assert.equal(owned.hooks[0].timeout, 15);
-  assert.equal(owned.hooks[0].command.includes(process.execPath.replaceAll('\\', '/')), true);
-  const result = spawnSync(process.execPath, [path.join(home, 'gpt-with-taste/hooks/steer.mjs')], {
-    input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: 'fixture-session', turn_id: 'fixture-turn', prompt: 'fixture' }), encoding: 'utf8',
-  });
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(JSON.parse(result.stdout).hookSpecificOutput.additionalContext.includes('FIXTURE USER STEER'), true);
-  const before = await fs.readFile(receipt(root));
-  await call('--hooks');
-  assert.deepEqual(await fs.readFile(receipt(root)), before);
-  const peer2 = { hooks: [{ type: 'command', command: 'new-peer' }] };
-  hooks.hooks.UserPromptSubmit.push(peer2);
-  await put(path.join(home, 'hooks.json'), JSON.stringify(hooks));
-  // Prompt-only upgrades never read or rewrite hook JSON or runtime files.
-  await put(path.join(root, 'prompts/main.md'), 'PROMPT ONLY UPGRADE');
-  await call();
-  assert.equal(JSON.parse(await fs.readFile(path.join(home, 'hooks.json'))).hooks.UserPromptSubmit.length, 3);
-  await call('--restore');
-  hooks = JSON.parse(await fs.readFile(path.join(home, 'hooks.json')));
-  assert.deepEqual(hooks.hooks.UserPromptSubmit, [peer, peer2]);
-  assert.deepEqual(hooks.hooks.Stop, [peer]);
-  assert.equal(hooks.custom, 3);
-  assert.equal(await exists(path.join(home, 'gpt-with-taste/hooks/steer.mjs')), false);
+test('plugin bundle installs three routes, leaves all user hooks untouched, updates and restores',async t=>{
+  const {root,home,call,state,calls}=await fixture(t);await put(path.join(home,'hooks.json'),'USER HOOK JSON IS NOT OURS');await put(path.join(home,'config.toml'),original);
+  await call();await call('--hooks','--dry-run');assert.equal(state.plugin,null);await call('--hooks');assert.equal(state.plugin.enabled,true);
+  const data=JSON.parse(await fs.readFile(receipt(root)));const hooks=JSON.parse(await fs.readFile(path.join(data.plugin.cacheRoot,'hooks/hooks.json')));
+  assert.deepEqual(Object.keys(hooks.hooks),['UserPromptSubmit','SubagentStart','PostToolUse']);assert.equal(hooks.hooks.PostToolUse[0].matcher,'^wait_agent$');assert.equal(hooks.hooks.UserPromptSubmit[0].hooks[0].timeout,15);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,/\$\{PLUGIN_ROOT\}/);
+  const baseline=await fs.readFile(receipt(root));await call('--hooks');assert.deepEqual(await fs.readFile(receipt(root)),baseline);assert.equal(calls.filter(name=>name==='install').length,1);
+  await put(path.join(root,'prompts/user-steer.md'),'UPDATED STEER');await call('--hooks');const updated=JSON.parse(await fs.readFile(receipt(root)));assert.equal(await fs.readFile(path.join(updated.plugin.cacheRoot,'prompts/user-steer.md'),'utf8'),'UPDATED STEER');assert.equal(updated.config.before,data.config.before);
+  await fs.appendFile(path.join(home,'config.toml'),'[analytics]\r\nenabled = false\r\n');await call('--check');await call('--restore');assert.equal(state.market,null);assert.equal(state.plugin,null);assert.equal(await fs.readFile(path.join(home,'config.toml'),'utf8'),original+'[analytics]\r\nenabled = false\r\n');assert.equal(await fs.readFile(path.join(home,'hooks.json'),'utf8'),'USER HOOK JSON IS NOT OURS');assert.equal(await exists(path.join(home,MARKET_ROOT,'plugins/gpt-with-taste/hooks/steer.mjs')),false);
 });
-test('hook drift and malformed hooks refuse without replacing prompts; default ignores malformed hooks', async t => {
-  const { home, root, call } = await fixture(t);
-  await put(path.join(home, 'hooks.json'), 'INVALID');
-  await call();
-  const before = await fs.readFile(receipt(root));
-  await assert.rejects(call('--hooks'), /valid JSON/);
-  assert.deepEqual(await fs.readFile(receipt(root)), before);
-  await put(path.join(home, 'hooks.json'), '{}');
-  await call('--hooks');
-  const hooks = JSON.parse(await fs.readFile(path.join(home, 'hooks.json')));
-  hooks.hooks.UserPromptSubmit[0].hooks[0].timeout = 999;
-  await put(path.join(home, 'hooks.json'), JSON.stringify(hooks));
-  await assert.rejects(call('--restore'), /hook has drifted/);
-  assert.equal(await exists(path.join(home, 'prompts/gpt-with-taste/main.md')), true);
+test('plugin collisions and cache drift fail closed; prompt-only updates do not inspect plugin',async t=>{
+  const {root,home,call,state,calls}=await fixture(t);state.market={name:MARKET,root:'/other'};await assert.rejects(call('--hooks'),/not owned/);assert.equal(await exists(receipt(root)),false);state.market=null;await call('--hooks');const data=JSON.parse(await fs.readFile(receipt(root)));await put(path.join(data.plugin.cacheRoot,'hooks/steer.mjs'),'USER CACHE EDIT');const before=await fs.readFile(receipt(root));await assert.rejects(call('--restore'),/file has drifted/);assert.deepEqual(await fs.readFile(receipt(root)),before);assert.equal(state.plugin.enabled,true);
+  calls.length=0;await put(path.join(root,'prompts/main.md'),'NEW MAIN');await call();assert.deepEqual(calls,[]);await assert.rejects(call('--check'),/file has drifted/);
 });
-test('safe TOML insertion keeps multiline unrelated content, dotted/quoted sections, BOM and no-final-newline', async () => {
-  const text = '\uFEFFnote = """\nmodel_instructions_file = "not-a-key"\n"""\nitems = [\n  "a",\n]\n["model_providers"."mine"]\nexperimental_bearer_token = "fixture-only"';
-  assert.equal(setInstructions(text, '/home/main.md'), '\uFEFFmodel_instructions_file = "/home/main.md"\n' + text.slice(1));
-  assert.throws(() => setInstructions('model_instructions_file = "a"\nmodel_instructions_file = "b"\n', '/a'), /duplicate/);
-  assert.throws(() => setInstructions('model_instructions_file = """multi\nline"""', '/a'), /single-line/);
+async function legacy(f,single=true,matchingBaseline=false){
+  const {root,home,call}=f;await put(path.join(home,'config.toml'),original);await call();const data=JSON.parse(await fs.readFile(receipt(root)));const cmd='node "owned-legacy-steer.mjs"',peer={hooks:[{type:'command',command:'other-sol-recipe-steer.mjs'}]};
+  const value={hooks:{UserPromptSubmit:[peer],Stop:[peer]}};if(matchingBaseline)value.hooks.UserPromptSubmit.push(hookGroup(cmd));
+  const groups=(single?ROUTES.slice(0,1):ROUTES).map(route=>installHook(value,cmd,route));
+  for(const name of ['hooks/steer.mjs','prompts/user-steer.md']){const bytes=await fs.readFile(path.join(root,name)),target=`gpt-with-taste/${name}`;await put(path.join(home,target),bytes);data.files.push({path:target,before:null,after:bytes.toString('base64')});}
+  const hookState={fileWasAbsent:false,hadHooks:true};if(single)data.hook={...groups[0],...hookState};else {data.hookGroups=groups;data.hookState=hookState;}
+  await put(path.join(home,'hooks.json'),JSON.stringify(value));await put(receipt(root),JSON.stringify(data));return {data,peer,cmd};
+}
+for(const single of [true,false])test(`legacy ${single?'single':'three'} route migration disables exact owned groups and restores original baseline`,async t=>{
+  const f=await fixture(t);const {data,peer}=await legacy(f,single);await f.call('--check');await f.call('--hooks');const upgraded=JSON.parse(await fs.readFile(receipt(f.root)));assert.equal(upgraded.hook,undefined);assert.ok(upgraded.hookGroups.every(group=>group.after===null));assert.equal(upgraded.config.before,data.config.before);let hooks=JSON.parse(await fs.readFile(path.join(f.home,'hooks.json')));assert.deepEqual(hooks.hooks.UserPromptSubmit,[peer]);assert.deepEqual(hooks.hooks.Stop,[peer]);await f.call('--hooks');await f.call('--restore');hooks=JSON.parse(await fs.readFile(path.join(f.home,'hooks.json')));assert.deepEqual(hooks.hooks.UserPromptSubmit,[peer]);assert.deepEqual(hooks.hooks.Stop,[peer]);assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),original);
 });
-test('an interrupted restore resumes using the same receipt', async t => {
-  const { home, root, call } = await fixture(t);
-  await call();
-  const data = JSON.parse(await fs.readFile(receipt(root)));
-  data.status = 'restoring';
-  await put(receipt(root), JSON.stringify(data));
-  await fs.unlink(path.join(home, data.files[0].path));
-  await call('--restore');
-  assert.equal(await exists(path.join(home, 'config.toml')), false);
-  assert.equal(JSON.parse(await fs.readFile(receipt(root))).status, 'restored');
+test('migration restores a matching pre-existing exact-command baseline, not a duplicate during plugin use',async t=>{
+  const f=await fixture(t);const {cmd,peer}=await legacy(f,true,true);await f.call('--hooks');assert.deepEqual(JSON.parse(await fs.readFile(path.join(f.home,'hooks.json'))).hooks.UserPromptSubmit,[peer]);await f.call('--restore');assert.deepEqual(JSON.parse(await fs.readFile(path.join(f.home,'hooks.json'))).hooks.UserPromptSubmit,[peer,hookGroup(cmd)]);
 });
-test('interrupted source update restores original bytes rather than replacing its baseline', async t => {
-  const { home, root, call } = await fixture(t);
-  await call();
-  const data = JSON.parse(await fs.readFile(receipt(root)));
-  data.status = 'applying';
-  for (const entry of data.files) {
-    entry.previous = entry.after;
-    entry.after = Buffer.from('NEW SOURCE').toString('base64');
-  }
-  data.config.previous = data.config.after;
-  await put(receipt(root), JSON.stringify(data));
-  await put(path.join(home, data.files[0].path), 'NEW SOURCE');
-  await call('--restore');
-  assert.equal(await exists(path.join(home, data.files[0].path)), false);
-  assert.equal(await exists(path.join(home, data.files[1].path)), false);
+test('legacy receipt restores directly without new plugin sources or Codex',async t=>{
+  const f=await fixture(t);await legacy(f);await fs.rm(path.join(f.root,'plugin'),{recursive:true});f.calls.length=0;await f.call('--restore');assert.deepEqual(f.calls,[]);
 });
-test('prompt-only remains independent of drift in previously opted-in hooks', async t => {
-  const { home, root, call } = await fixture(t);
-  await call('--hooks');
-  await put(path.join(home, 'hooks.json'), 'USER CHANGED HOOK FILE');
-  await put(path.join(root, 'prompts/main.md'), 'NEW MAIN');
-  await call();
-  assert.equal(await fs.readFile(path.join(home, 'hooks.json'), 'utf8'), 'USER CHANGED HOOK FILE');
-  assert.equal(await fs.readFile(path.join(home, 'prompts/gpt-with-taste/main.md'), 'utf8'), 'NEW MAIN');
-  await assert.rejects(call('--restore'), /valid JSON/);
+test('CLI install failure retains a recovery receipt; interrupted restore removes only our partial plugin',async t=>{
+  const f=await fixture(t);const install=f.api.install;f.api.install=async root=>{await install(root);throw new Error('FIXTURE CLI FAILURE');};await assert.rejects(f.call('--hooks'),/FIXTURE CLI FAILURE.*\nRecovery receipt/);assert.equal(JSON.parse(await fs.readFile(receipt(f.root))).status,'applying');await f.call('--restore');assert.equal(f.state.plugin,null);assert.equal(f.state.market,null);assert.equal(await exists(path.join(f.home,'config.toml')),false);
 });
-test('invalid managed scalar fails before writes', async t => {
-  const { home, root, call } = await fixture(t);
-  await put(path.join(home, 'config.toml'), 'model_instructions_file = ["not-a-path"]\n');
-  await assert.rejects(call(), /single-line string/);
-  assert.equal(await exists(receipt(root)), false);
-  assert.throws(() => setInstructions('  model_instructions_file = """x"""\n', '/a'), /single-line/);
+test('interrupted prompt update restores original bytes',async t=>{
+  const f=await fixture(t);await f.call();const data=JSON.parse(await fs.readFile(receipt(f.root)));data.status='applying';for(const entry of data.files){entry.previous=entry.after;entry.after=Buffer.from('NEW SOURCE').toString('base64');}data.config.previous=data.config.after;await put(receipt(f.root),JSON.stringify(data));await put(path.join(f.home,data.files[0].path),'NEW SOURCE');await f.call('--restore');assert.equal(await exists(path.join(f.home,data.files[0].path)),false);
 });
-test('opting in adopts matching preexisting hook files without dropping recovery state', async t => {
-  const { home, root, call } = await fixture(t);
-  await call('--hooks');
-  const hookText = await fs.readFile(path.join(home, 'hooks.json'));
-  const runtimeFiles = ['gpt-with-taste/hooks/steer.mjs', 'gpt-with-taste/prompts/user-steer.md'];
-  const runtime = await Promise.all(runtimeFiles.map(file => fs.readFile(path.join(home, file))));
-  await call('--restore');
-  await call();
-  for (let i = 0; i < runtimeFiles.length; i++) await put(path.join(home, runtimeFiles[i]), runtime[i]);
-  await put(path.join(home, 'hooks.json'), hookText);
-  await call('--hooks');
-  const data = JSON.parse(await fs.readFile(receipt(root)));
-  assert.equal(data.files.length, 4);
-  assert.ok(data.hook);
-  await call('--restore');
-  assert.equal(await exists(path.join(home, runtimeFiles[0])), true);
-  assert.deepEqual(JSON.parse(await fs.readFile(path.join(home, 'hooks.json'))), JSON.parse(hookText));
+test('safe TOML insertion preserves multiline unrelated content and rejects invalid managed scalars',async()=>{
+  const text='\uFEFFnote = """\nmodel_instructions_file = "not-a-key"\n"""\nitems = [\n  "a",\n]\n["model_providers"."mine"]\nexperimental_bearer_token = "fixture-only"';assert.equal(setInstructions(text,'/home/main.md'),'\uFEFFmodel_instructions_file = "/home/main.md"\n'+text.slice(1));assert.throws(()=>setInstructions('model_instructions_file = "a"\nmodel_instructions_file = "b"\n','/a'),/duplicate/);assert.throws(()=>setInstructions('model_instructions_file = ["not-a-path"]','/a'),/single-line/);
+});
+
+test('interrupted plugin refresh accepts previous and new cache bytes while restoring the original baseline',async t=>{
+  const f=await fixture(t);await f.call('--hooks');const before=JSON.parse(await fs.readFile(receipt(f.root)));await put(path.join(f.root,'prompts/user-steer.md'),'NEW STEER');
+  const install=f.api.install;f.api.install=async root=>{await install(root);throw new Error('REFRESH FAILED AFTER CLI COPY');};
+  await assert.rejects(f.call('--hooks'),/REFRESH FAILED/);await f.call('--restore');assert.equal(f.state.plugin,null);assert.equal(f.state.market,null);assert.equal(await exists(path.join(f.home,before.files[0].path)),false);
+});
+
+test('interrupted plugin removal resumes with the same receipt after the CLI removed its cache',async t=>{
+  const f=await fixture(t);await put(path.join(f.home,'config.toml'),original);await f.call('--hooks');
+  const removeMarket=f.api.removeMarket;f.api.removeMarket=async()=>{throw new Error('MARKET REMOVE FAILED');};
+  await assert.rejects(f.call('--restore'),/MARKET REMOVE FAILED/);assert.equal(f.state.plugin,null);assert.equal(JSON.parse(await fs.readFile(receipt(f.root))).status,'restoring');
+  f.api.removeMarket=removeMarket;await f.call('--restore');assert.equal(f.state.market,null);assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),original);
 });

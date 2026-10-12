@@ -11,6 +11,7 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "test": "node --test scripts/install.test.mjs hooks/steer.test.mjs",
+    "test:codex-plugin": "node --test scripts/plugin-install.test.mjs",
     "install:codex": "node scripts/install.mjs"
   }
 }
