@@ -16,6 +16,7 @@
 <p align="center">
   <a href="#install">Install</a> ·
   <a href="#what-changes">What changes</a> ·
+  <a href="#featured-case">Comparison</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#research">Research</a>
 </p>
@@ -57,6 +58,24 @@ GPT with Taste puts judgment into the outcome: choose sensible defaults, preserv
 </picture>
 
 The recipe combines judgment, continuous execution, collaboration, and engineering and visual craft. Explore the principles in [Research](docs/research.md), or inspect complete runs, task inputs, and side-by-side outputs in the [Case Archive](docs/cases.md) and [Web Comparison](https://nb-corp.github.io/gpt-with-taste/).
+
+---
+
+<a id="featured-case"></a>
+
+## Comparison · From installation logs to a first task
+
+> **Task request**: 根据 notes.md，给刚装好的同事写一份中文上手说明，放 START_HERE.md。<br>
+> *(Both sessions received the exact same installation notes and Chinese request.)*
+
+The visible improvement is straightforward: get the reader started first, while installation audits and process disclaimers step out of the way.
+
+| Codex default instructions | GPT with Taste |
+| :--- | :--- |
+| **Where the guide starts** (`builtin.md:1-3`)<br><br># Codex 中文上手说明<br><br>**这份说明依据安装记录 `notes.md` 整理，未重新检查本机配置。**先正常打开一个新的 Codex 会话，就可以开始使用已安装的 Main 提示词；逐轮提醒是可选项，不影响这一步。 | **Where the guide starts** (`taste.md:1-9`)<br><br># Codex 上手：直接开新会话<br><br>GPT with Taste 已安装。**正常打开一个新的 Codex 会话，就会使用 Main 提示词**；不用选择 controller、添加 profile 参数，也不用定制启动器。<br><br>## 先完成你的第一个任务<br><br>用中文说明你要做什么、涉及哪些文件，以及怎样算完成。例如：<br><br>> **帮我梳理这个项目的启动步骤，先只读文件，不修改任何内容。** |
+| **Delivery reply** (`builtin-assistant.md`)<br><br>已根据 `notes.md` 写好 [START_HERE.md](docs/cases/codex-first-use/builtin.md)，包含直接使用、可选提醒启用、未验证事项及恢复步骤。**仅新增该文件，未检查或修改实际配置。** | **Delivery reply** (`taste-assistant.md`)<br><br>已根据 `notes.md` 写好 [START_HERE.md](docs/cases/codex-first-use/taste.md)，包含新会话用法、Main/Sub 当前状态、可选提醒启用步骤及恢复命令。 |
+
+Inspect full inputs, generated documents, and run conditions: [Task & run conditions](docs/cases/codex-first-use/input.md) · [Web comparison page](https://nb-corp.github.io/gpt-with-taste/) · [Case index](docs/cases.md).
 
 ---
 
