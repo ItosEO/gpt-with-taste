@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: #FBF9F5; --ink: #1C1E21; --muted: #5A606D; --accent: #C84824;
+    --caution: #824734; --positive: #1D6B4F;
+    --border: #E6E2D8; --border-strong: #D8D2C2; --code-bg: #F6F8FA;
+    --hl-c-bg: rgba(130, 71, 52, 0.09); --hl-t-bg: rgba(29, 107, 79, 0.10);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 16px; line-height: 1.65; }
+  code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .86em; background: var(--code-bg); border: 1px solid var(--border); padding: 1px 5px; border-radius: 5px; }
+  blockquote.request { margin: 0; padding: 4px 0 4px 18px; border-left: 3px solid var(--accent); font-family: Georgia, "Times New Roman", serif; font-style: italic; font-size: 18px; }
+  h2 { font-size: 15px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; margin: 0 0 14px; }
+  section { margin-top: 34px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--border-strong); }
+  .col { padding: 18px 28px 20px 0; min-width: 0; }
+  .col + .col { border-left: 1px solid var(--border); padding-left: 28px; padding-right: 0; }
+  .lane { display: block; font-size: 11px; font-weight: 700; letter-spacing: 2.2px; margin-bottom: 12px; }
+  .lane.b { color: var(--caution); } .lane.t { color: var(--positive); }
+  .hl-c { background: var(--hl-c-bg); color: var(--caution); font-weight: 700; border-radius: 3px; padding: 0 2px; }
+  .hl-t { background: var(--hl-t-bg); color: var(--positive); font-weight: 700; border-radius: 3px; padding: 0 2px; }
+  .doc-head { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; color: var(--muted); margin: 0 0 10px; }
+  .note { margin: 14px 0 0; padding-top: 12px; border-top: 1px dashed var(--border-strong); color: var(--muted); font-size: 14px; }
+  .card { background: var(--bg); padding: 36px 48px 14px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <blockquote class="request">Based on notes.md, write a Chinese onboarding guide for a colleague who has just finished installing, and save it as START_HERE.md.</blockquote>
+  <section>
+    <h2>Where each guide starts</h2>
+    <div class="cols">
+      <article class="col">
+        <span class="lane b">BUILTIN DEFAULT</span>
+        <p class="doc-head"># Codex Chinese onboarding guide</p>
+        <p><span class="hl-c">This guide was compiled from the installation log <code>notes.md</code>; the local configuration was not re-checked.</span> Open a new Codex session as usual and you can start using the installed Main prompt; per-turn reminders are optional and do not affect this step.</p>
+        <p>One real GPT-6.1 Sol/high request in the installation log confirmed that the complete English Main text, identical to the author's source, is loaded. <span class="hl-c">That verification is already done — it does not mean you need to switch to that model.</span></p>
+        <p class="note">The opening spends its first lines on provenance and verification status.</p>
+      </article>
+      <article class="col">
+        <span class="lane t">GPT WITH TASTE</span>
+        <p class="doc-head"># Codex onboarding: open a new session</p>
+        <p>GPT with Taste is installed. <span class="hl-t">Open a new Codex session as usual and the Main prompt is in effect</span> — no controller to pick, no profile flag to add, no custom launcher.</p>
+        <p class="doc-head">## Start with your first task</p>
+        <p>Say in Chinese what you want done, which files it touches, and what counts as finished. For example: <span class="hl-t">walk me through this project's startup steps — read the files only, change nothing.</span></p>
+        <p class="note">The opening hands the colleague a first task to run.</p>
+      </article>
+    </div>
+  </section>
+  <section>
+    <h2>The delivery reply</h2>
+    <div class="cols">
+      <article class="col">
+        <span class="lane b">BUILTIN DEFAULT</span>
+        <p>START_HERE.md is written from <code>notes.md</code>, covering direct usage, enabling the optional reminders, unverified items, and restore steps. <span class="hl-c">Only that file was added; the actual configuration was not checked or modified.</span></p>
+      </article>
+      <article class="col">
+        <span class="lane t">GPT WITH TASTE</span>
+        <p>START_HERE.md is written from <code>notes.md</code>, <span class="hl-t">covering new-session usage, the current Main/Sub status, steps to enable the optional reminders, and the restore commands.</span></p>
+      </article>
+    </div>
+    <p class="note">Both replies name what the document covers. One also reports what it did not do.</p>
+  </section>
+</div>
+</body>
+</html>

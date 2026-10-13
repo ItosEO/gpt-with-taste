@@ -65,12 +65,11 @@ The recipe combines judgment, continuous execution, collaboration, and engineeri
 
 ## Comparison · From installation logs to a first task
 
-> **Task request**: 根据 notes.md，给刚装好的同事写一份中文上手说明，放 START_HERE.md。<br>
-> *(Both sessions received the exact same installation notes and Chinese request.)*
+> **Task request**: Use `notes.md` to write a Chinese getting-started guide for a colleague who has just finished installing. Save it as `START_HERE.md`.
 
 The visible improvement is straightforward: get the reader started first, while installation audits and process disclaimers step out of the way.
 
-[![Codex default vs. GPT with Taste: representative excerpts, with unnecessary self-justification highlighted](assets/case-first-use.png)](https://nb-corp.github.io/gpt-with-taste/)
+[![Codex default vs. GPT with Taste: representative excerpts, with unnecessary self-justification highlighted](assets/case-first-use-en.png)](https://nb-corp.github.io/gpt-with-taste/)
 
 Inspect full inputs, generated documents, and run conditions: [Task & run conditions](docs/cases/codex-first-use/input.md) · [Web comparison page](https://nb-corp.github.io/gpt-with-taste/) · [Case index](docs/cases.md).
 
