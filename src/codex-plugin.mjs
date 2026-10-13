@@ -25,10 +25,11 @@ export async function pluginBundle(root) {
   }
   const node = process.execPath.replaceAll('\\', '/');
   const quote = process.platform === 'win32' ? `"${node}"` : `'${node.replaceAll("'", "'\\''")}'`;
-  const command = `${quote} "\${PLUGIN_ROOT}/hooks/steer.mjs"`;
-  const hooks = Object.fromEntries(ROUTES.map(route => [
-    route.event, [hookGroup(command, route.matcher)],
-  ]));
+  const fallbackRoute = {UserPromptSubmit: 'user', SubagentStart: 'sub', PostToolUse: 'agent'};
+  const hooks = Object.fromEntries(ROUTES.map(route => {
+    const command = `${quote} "\${PLUGIN_ROOT}/hooks/steer.mjs" --route ${fallbackRoute[route.event]}`;
+    return [route.event, [hookGroup(command, route.matcher)]];
+  }));
   files.set(`${MARKET_ROOT}/plugins/${PLUGIN}/hooks/hooks.json`,
     Buffer.from(JSON.stringify({hooks}, null, 2) + '\n'));
   return files;

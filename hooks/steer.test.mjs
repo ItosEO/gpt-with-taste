@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {spawn} from 'node:child_process';
 import {test} from 'node:test';
-import {handleHook} from './steer.mjs';
+import {fallbackHook, handleHook} from './steer.mjs';
 function fixture(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gpt-with-taste-hook-'));
   for (const source of ['user', 'sub', 'agent']) fs.writeFileSync(path.join(dir, `${source}-steer.md`), `${source.toUpperCase()} WHOLE SOURCE\n`);
@@ -43,7 +44,59 @@ test('shell, MCP, subagent stop, spawn ids, timeouts and child tool results rece
 test('malformed event and missing source fail visibly', t => {
   assert.throws(() => handleHook('{'), SyntaxError);
   assert.throws(() => handleHook(null), /event object/);
+  assert.throws(() => fallbackHook('unknown'), /Invalid --route fallback/);
   const dir = fixture(t);
   fs.unlinkSync(path.join(dir, 'sub-steer.md'));
   assert.throws(() => handleHook({hook_event_name: 'SubagentStart'}, dir), /ENOENT/);
+});
+
+function runCli(args, input, audit) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [path.join(import.meta.dirname, 'steer.mjs'), ...args], {
+      env: {...process.env, ...(audit ? {GPT_WITH_TASTE_HOOK_AUDIT: audit} : {})},
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', chunk => stdout += chunk);
+    child.stderr.on('data', chunk => stderr += chunk);
+    child.on('error', reject);
+    child.on('close', code => resolve({code, stdout, stderr}));
+    child.stdin.end(input);
+  });
+}
+
+test('empty stdin uses only an explicit route fallback and audits it', async t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gpt-with-taste-cli-'));
+  t.after(() => fs.rmSync(dir, {recursive: true}));
+  for (const route of ['user', 'sub', 'agent']) {
+    const audit = path.join(dir, `${route}.jsonl`);
+    const result = await runCli(['--route', route], '', audit);
+    assert.equal(result.code, 0);
+    const output = JSON.parse(result.stdout);
+    assert.match(output.hookSpecificOutput.additionalContext, new RegExp(`<gpt-with-taste-${route}-steer>`));
+    assert.deepEqual(JSON.parse(fs.readFileSync(audit, 'utf8')), {
+      event: {user: 'UserPromptSubmit', sub: 'SubagentStart', agent: 'PostToolUse'}[route],
+      sessionId: null, turnId: null, agentId: null, agentType: null, tool: null, toolUseId: null,
+      route, fallback: true, injected: true,
+    });
+  }
+});
+
+test('empty stdin without an explicit route remains a visible failure', async () => {
+  const result = await runCli([], '', null);
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /Expected a Codex hook event JSON object/);
+});
+
+test('valid JSON keeps the original route selection and does not use fallback', async t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gpt-with-taste-valid-'));
+  t.after(() => fs.rmSync(dir, {recursive: true}));
+  const audit = path.join(dir, 'event.jsonl');
+  const result = await runCli(['--route', 'agent'], JSON.stringify({hook_event_name: 'UserPromptSubmit', prompt: 'request'}) + '\n', audit);
+  assert.equal(result.code, 0);
+  const output = JSON.parse(result.stdout);
+  assert.match(output.hookSpecificOutput.additionalContext, /<gpt-with-taste-user-steer>/);
+  const record = JSON.parse(fs.readFileSync(audit, 'utf8'));
+  assert.equal(record.route, 'user');
+  assert.equal(record.fallback, false);
 });
