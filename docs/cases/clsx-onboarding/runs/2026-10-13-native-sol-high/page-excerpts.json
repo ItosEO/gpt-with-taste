@@ -1,0 +1,20 @@
+[
+  {
+    "arm": "builtin",
+    "file": "../../builtin.md",
+    "lines": [
+      17,
+      29
+    ],
+    "text": "安装后，在同一目录运行：\n\n```sh\nnode -e \"const clsx = require('clsx'); console.log(clsx('button', { 'button--active': true }));\"\n```\n\n应输出：\n\n```text\nbutton button--active\n```\n\n如果提示找不到 `clsx`，确认安装命令已成功，并且安装和验证都在同一个项目目录执行。"
+  },
+  {
+    "arm": "taste",
+    "file": "../../taste.md",
+    "lines": [
+      13,
+      30
+    ],
+    "text": "在项目的 JavaScript 或 TypeScript 文件中导入：\n\n```js\nimport clsx from 'clsx';\n\nconst isActive = true;\nconst isDisabled = false;\n\nconst className = clsx('button', {\n  'button--active': isActive,\n  'button--disabled': isDisabled,\n});\n\nconsole.log(className);\n// 输出：'button button--active'\n```\n\n把 `isActive` 改成 `false`，结果就只剩 `'button'`。在项目现有的开发环境中运行这段代码，查看控制台输出即可确认。"
+  }
+]

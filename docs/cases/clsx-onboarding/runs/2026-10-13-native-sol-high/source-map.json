@@ -1,0 +1,104 @@
+{
+  "case": "clsx-onboarding",
+  "input": "给刚接触 clsx 的前端同事写一份中文上手文档，放 docs/getting-started.zh-CN.md，能照着安装用起来。",
+  "source": {
+    "repository": "https://github.com/lukeed/clsx",
+    "commit": "925494cf31bcd97d3337aacd34e659e80cae7fe2",
+    "version": "2.1.1",
+    "snapshot": "../../source/",
+    "files": [
+      "readme.md",
+      "package.json",
+      "license",
+      "src/index.js",
+      "src/lite.js",
+      "clsx.d.ts",
+      "clsx.d.mts"
+    ]
+  },
+  "baseline": {
+    "source": "codex debug models official gpt-6.1-sol catalog export",
+    "catalogBase": "prompts/builtin-catalog-base.md",
+    "effectiveBase": "prompts/builtin-effective-base.md",
+    "processing": "Only literal {{ personality }} followed by two newline characters removed; no other base edits",
+    "userCustomModelInstructionFileExcluded": true,
+    "sharedLocalCustomizationRetained": true
+  },
+  "taste": {
+    "completeFrozenMain": "prompts/taste-main.md",
+    "repositoryPath": "prompts/main.md",
+    "matchesCommit": "2f83a28",
+    "steerInjected": false,
+    "behavior": "Main-only"
+  },
+  "sharedContext": {
+    "sameSourceFiles": true,
+    "sameLocalAGENTSTextAfterWorkspacePathNormalization": true,
+    "sameAvailableSkillsText": true,
+    "globalCustomizedAgentCoreRetained": true,
+    "userWritingSkillsAvailable": true,
+    "permissionMode": "workspace-write",
+    "developerInstructionsOverride": "empty"
+  },
+  "runs": {
+    "builtin": {
+      "runDate": "2026-10-13",
+      "cli": "0.162.0-alpha.17.2",
+      "model": "gpt-6.1-sol",
+      "reasoningEffort": "high",
+      "modelProvider": "codex_local_access",
+      "multiAgent": "disabled",
+      "inputOrdinal": 6,
+      "assistantMessageCount": 4,
+      "assistantOrdinals": [
+        9,
+        62,
+        84,
+        107
+      ],
+      "assistantArchive": "builtin-assistant.md",
+      "assistantData": "builtin-assistant.json",
+      "generatedDocument": "../../builtin.md",
+      "documentMatchesOriginalRunArtifact": true,
+      "finalAnswerOrdinal": 107,
+      "effectiveBaseMatchesArchivedSource": true,
+      "promptSource": "prompts/builtin-effective-base.md",
+      "hooksConfigured": false,
+      "steerMessages": 0,
+      "redactions": [
+        {
+          "message": 4,
+          "ordinal": 107,
+          "field": "text",
+          "change": "Local absolute document link target replaced with ../../builtin.md, the exact archived document; surrounding text unchanged"
+        }
+      ]
+    },
+    "taste": {
+      "runDate": "2026-10-13",
+      "cli": "0.162.0-alpha.17.2",
+      "model": "gpt-6.1-sol",
+      "reasoningEffort": "high",
+      "modelProvider": "codex_local_access",
+      "multiAgent": "disabled",
+      "inputOrdinal": 6,
+      "assistantMessageCount": 2,
+      "assistantOrdinals": [
+        9,
+        67
+      ],
+      "assistantArchive": "taste-assistant.md",
+      "assistantData": "taste-assistant.json",
+      "generatedDocument": "../../taste.md",
+      "documentMatchesOriginalRunArtifact": true,
+      "finalAnswerOrdinal": 67,
+      "effectiveBaseMatchesArchivedSource": true,
+      "promptSource": "prompts/taste-main.md",
+      "hooksConfigured": true,
+      "steerMessages": 0,
+      "redactions": []
+    }
+  },
+  "archiveScope": "Every original assistant commentary and final-answer message is retained. Generated Markdown documents are separate tool-produced artifacts, not assistant message bodies.",
+  "publicRedaction": "One local absolute link target in the built-in final reply replaced with ../../builtin.md, the exact archived document; no message omitted or paraphrased."
+}
