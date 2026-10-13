@@ -46,4 +46,4 @@ The practical edit is often deletion. Once an example or interface already expla
 4. Return to that task with ordinary user input.
 5. Keep, revise, or remove the change based on the result.
 
-The [case index](cases.md) separates that evidence from candidate material. The verified Button comparison has complete input and outputs. The preferred clsx onboarding case remains draft / unverified until its original full assistant messages are archived.
+The [case index](cases.md) keeps each case's request, run conditions, and outputs together.

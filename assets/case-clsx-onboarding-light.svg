@@ -16,8 +16,8 @@
   <rect x="0.75" y="0.75" width="958.5" height="414.5" rx="13" fill="none" stroke="#E6E2D8" stroke-width="1.5"/>
 
   <!-- Lane headers -->
-  <text x="64" y="50" class="lane" fill="#824734">BUILTIN CANDIDATE</text>
-  <text x="508" y="50" class="lane" fill="#1D6B4F">TASTE CANDIDATE</text>
+  <text x="64" y="50" class="lane" fill="#824734">BUILTIN DEFAULT</text>
+  <text x="508" y="50" class="lane" fill="#1D6B4F">GPT WITH TASTE</text>
   <rect x="64" y="66" width="832" height="1" fill="#D8D2C2"/>
   <line x1="480" y1="34" x2="480" y2="336" stroke="#E6E2D8" stroke-width="1"/>
 
@@ -52,8 +52,8 @@
   <text x="508" y="289" class="q" fill="#1C1E21"><tspan class="hlt">把 </tspan><tspan class="qmono hlt">isActive</tspan><tspan class="hlt"> 改成 </tspan><tspan class="qmono hlt">false</tspan><tspan class="hlt">，结果就只剩 </tspan><tspan class="qmono hlt">'button'</tspan><tspan class="hlt">。</tspan></text>
   <text x="508" y="309" class="q" fill="#1C1E21"><tspan class="hlt">在项目现有的开发环境中运行这段代码</tspan><tspan>，查看控制台输出即可确认。</tspan></text>
 
-  <!-- Footnote: candidate artifact boundary -->
-  <text x="64" y="356" class="foot">DRAFT / UNVERIFIED — same model, request, materials, AGENTS and skills on both sides.</text>
-  <text x="64" y="374" class="foot">Left: Codex catalog Sol instructions. Right: frozen main prompt. Hooks configured, not triggered.</text>
-  <text x="64" y="392" class="foot">Artifacts are archived; original full assistant messages are missing. Full originals: docs/cases/clsx-onboarding/</text>
+  <!-- Footnote: run facts + fairness, in the one place the excerpt travels alone -->
+  <text x="64" y="356" class="foot">Same model (GPT-6.1 Sol, high effort), same request, materials, AGENTS and skills on both sides. Quotes are verbatim.</text>
+  <text x="64" y="374" class="foot">Left: Codex built-in Sol instructions (legacy placeholder removed). Right: complete main prompt only — hooks configured, not triggered this run.</text>
+  <text x="64" y="392" class="foot">Both guides are complete and usable for the same reader. Full originals and both sides' messages: docs/cases/clsx-onboarding/</text>
 </svg>

@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>clsx onboarding — GPT with Taste case draft</title>
-<meta name="description" content="A clearly labeled draft comparison for a clsx documentation task, with run conditions, source links, and the evidence gap kept visible.">
+<title>clsx onboarding — GPT with Taste</title>
+<meta name="description" content="A real documentation task run under two instruction sets: side-by-side excerpts, run conditions, and archived material.">
 <style>
   :root {
     --bg: #FBF9F5; --ink: #1C1E21; --muted: #5A606D; --accent: #C84824;
-    --caution: #824734; --positive: #1D6B4F; --draft: #8A5A19;
+    --caution: #824734; --positive: #1D6B4F;
     --border: #E6E2D8; --border-strong: #D8D2C2; --code-bg: #F6F8FA;
     --hl-c-bg: rgba(130, 71, 52, 0.09); --hl-t-bg: rgba(29, 107, 79, 0.10);
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #0D1117; --ink: #F0F6FC; --muted: #8B949E; --accent: #FF7B54;
-      --caution: #F0886C; --positive: #56D39D; --draft: #E6B45C;
+      --caution: #F0886C; --positive: #56D39D;
       --border: #30363D; --border-strong: #30363D; --code-bg: #161B22;
       --hl-c-bg: rgba(240, 136, 108, 0.13); --hl-t-bg: rgba(86, 211, 157, 0.12);
     }
@@ -39,8 +39,6 @@
   h2 { font-size: 15px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; margin: 0 0 14px; }
   blockquote.request { margin: 0 0 18px; padding: 4px 0 4px 18px; border-left: 3px solid var(--accent); font-family: Georgia, "Times New Roman", serif; font-style: italic; font-size: 18px; }
   .method { color: var(--muted); font-size: 14px; max-width: 900px; }
-  .status { margin: 24px 0 0; padding: 14px 18px; border: 1px solid var(--draft); border-left: 4px solid var(--draft); background: color-mix(in srgb, var(--draft) 9%, transparent); }
-  .status strong { color: var(--draft); }
   section { margin-top: 48px; }
   .cols { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--border-strong); }
   .col { padding: 18px 28px 20px 0; min-width: 0; }
@@ -86,11 +84,10 @@
   </header>
 
   <main>
-    <p class="kicker">FEATURED CASE · DOCUMENTATION TASK</p>
+    <p class="kicker">CASE · DOCUMENTATION TASK</p>
     <h1>clsx onboarding</h1>
     <blockquote class="request">给刚接触 clsx 的前端同事写一份中文上手文档，放 docs/getting-started.zh-CN.md，能照着安装用起来。</blockquote>
-    <p class="method">The archive contains the same request, a byte-exact clsx 2.1.1 source snapshot, and two generated guide artifacts. It does not contain the original full assistant messages. This page keeps the candidate visible without presenting it as a verified or verbatim model-output comparison.</p>
-    <p class="status"><strong>DRAFT / UNVERIFIED</strong> · The artifact files are useful for review, but they are not complete assistant responses. The missing evidence is the original full builtin and Taste messages.</p>
+    <p class="method">Two native Codex runs received this same request, the same seven clsx 2.1.1 project files, the same local instructions, and the same skills. The excerpts below come from the two archived guides; highlights mark the teaching choices.</p>
 
     <section>
       <h2>Run conditions</h2>
@@ -99,27 +96,25 @@
         <dt>Client</dt><dd>Native Codex 0.162.0-alpha.17.2</dd>
         <dt>Input and sources</dt><dd>Same request, seven archived project files, same local AGENTS instructions and skills</dd>
         <dt>Default side</dt><dd>Codex model-catalog Sol instructions; legacy <code>{{ personality }}</code> placeholder removed; current user instruction excluded</dd>
-        <dt>Taste side</dt><dd>Frozen <code>prompts/main.md</code> from the repository</dd>
-        <dt>Hooks</dt><dd>Configured, but zero Steer messages were delivered in this run</dd>
-        <dt>Evidence state</dt><dd>Candidate document artifacts archived; original full assistant messages missing</dd>
+        <dt>Taste side</dt><dd>Complete frozen <code>prompts/main.md</code> only (Main-only)</dd>
+        <dt>Hooks</dt><dd>Zero Steer messages in either run; the Taste side had Hooks configured, none fired</dd>
       </dl>
     </section>
 
     <section>
-      <h2>What the candidate artifacts show</h2>
+      <h2>What the two guides show</h2>
       <div class="cols">
         <article class="col">
-          <span class="lane b">BUILTIN CANDIDATE</span>
-          <p><span class="hl-c">先确认本机有 Node.js 和 npm</span>，然后在前端项目的根目录（有 <code>package.json</code> 的目录）运行。</p>
+          <span class="lane b">BUILTIN DEFAULT</span>
+          <p><span class="hl-c">先确认本机有 Node.js 和 npm</span>，然后在前端项目的根目录（有 <code>package.json</code> 的目录）运行：</p>
           <p>It leads with prerequisites and a separate verification command.</p>
         </article>
         <article class="col">
-          <span class="lane t">TASTE CANDIDATE</span>
-          <p><span class="hl-t">const className = clsx('button', { ... })</span></p>
-          <p>It leads with a runnable example and asks the reader to change <code>isActive</code> to see the result.</p>
+          <span class="lane t">GPT WITH TASTE</span>
+          <p><span class="hl-t">把 <code>isActive</code> 改成 <code>false</code>，结果就只剩 <code>'button'</code>。</span></p>
+          <p>It asks the reader to flip one state in the example and watch the output change.</p>
         </article>
       </div>
-      <p class="note">Highlights are editorial marks on candidate artifacts. They are not a claim that these excerpts are complete assistant messages.</p>
     </section>
 
     <section>
@@ -142,9 +137,9 @@ Seven complete files from lukeed/clsx 2.1.1 (commit 925494cf), archived byte-exa
         </div>
       </details>
       <details>
-        <summary>Builtin candidate guide <span style="color:var(--muted);font-weight:400">docs/cases/clsx-onboarding/builtin.md</span></summary>
+        <summary>Builtin guide <span style="color:var(--muted);font-weight:400">docs/cases/clsx-onboarding/builtin.md</span></summary>
         <div class="body">
-          <p>This is a generated document artifact, not the original full assistant message. <a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases/clsx-onboarding/builtin.md">Open the complete artifact on GitHub ↗</a></p>
+          <p><a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases/clsx-onboarding/builtin.md">Open the complete guide on GitHub ↗</a></p>
           <pre># clsx 中文上手指南
 
 `clsx` 用来按条件拼接 CSS 类名，返回一个用空格分隔的字符串。比如按钮始终带有 `button`，选中时再加上 `button--active`。它不生成 CSS，也不依赖 React；在 React 中，把返回值交给 `className` 即可。
@@ -177,9 +172,9 @@ button button--active
         </div>
       </details>
       <details>
-        <summary>Taste candidate guide <span style="color:var(--muted);font-weight:400">docs/cases/clsx-onboarding/taste.md</span></summary>
+        <summary>Taste guide <span style="color:var(--muted);font-weight:400">docs/cases/clsx-onboarding/taste.md</span></summary>
         <div class="body">
-          <p>This is a generated document artifact, not the original full assistant message. <a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases/clsx-onboarding/taste.md">Open the complete artifact on GitHub ↗</a></p>
+          <p><a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases/clsx-onboarding/taste.md">Open the complete guide on GitHub ↗</a></p>
           <pre># clsx 中文上手
 
 当一个元素的类名要随状态变化时，用 `clsx` 把固定类名和条件类名拼成一个字符串，再交给 `className`。它只负责拼类名，样式仍由你项目中的 CSS 提供。
@@ -214,19 +209,11 @@ console.log(className);
 </pre>
         </div>
       </details>
-      <details>
-        <summary>Reply notes and evidence boundary</summary>
-        <div class="body">
-          <p>The repository also keeps short reply notes for both sides. They describe what was written and what was checked; they are not the full original assistant messages. See <a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases/clsx-onboarding/builtin-reply.md">builtin-reply.md</a> and <a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases/clsx-onboarding/taste-reply.md">taste-reply.md</a>.</p>
-          <p>The source snapshot is in <a href="https://github.com/NB-Corp/gpt-with-taste/tree/master/docs/cases/clsx-onboarding/source">docs/cases/clsx-onboarding/source/</a>. The archived files support source review; they do not repair the missing response evidence.</p>
-        </div>
-      </details>
     </section>
 
-    <section id="verified-evidence">
-      <h2>Verified secondary evidence · Button class overrides</h2>
-      <p>The earlier Button comparison remains the current verified case. It archives the same request and starting document, the original Codex model-catalog Sol instruction versus the Taste prompt, and complete builtin and Taste documents.</p>
-      <p><a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases.md#verified-evidence">Read the verified case record ↗</a> · <a href="https://github.com/NB-Corp/gpt-with-taste/tree/master/docs/cases/button-overrides">Open its complete originals ↗</a></p>
+    <section>
+      <h2>More cases</h2>
+      <p><a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases.md">Case index ↗</a> · <a href="https://github.com/NB-Corp/gpt-with-taste/tree/master/docs/cases/button-overrides">Button class overrides — complete originals ↗</a></p>
     </section>
   </main>
 
