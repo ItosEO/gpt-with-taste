@@ -35,7 +35,7 @@ cd gpt-with-taste
 node scripts/install.mjs --hooks
 ```
 
-Use Hooks for multi-turn work when your Codex client dispatches the corresponding events. For a prompt-only installation, run `node scripts/install.mjs` instead. Neither route needs npm packages.
+We recommend Hooks for multi-turn work in Codex Desktop: reminders arrive with your message, with the child's input, and when main collects a completed result. For a prompt-only installation, run `node scripts/install.mjs` instead. Neither route needs npm packages.
 
 Both routes install into the active `CODEX_HOME` (otherwise `~/.codex`), write the two managed prompt files, and point `model_instructions_file` at the main one. Your model, provider, effort, authentication, permissions, MCP servers, roles, and `AGENTS.md` remain unchanged. To target another home, add `--home` with a quoted absolute path, for example `--home "C:/Users/you/.codex"`.
 
@@ -86,9 +86,9 @@ The current verified evidence is the secondary [Button class override comparison
 ## How it works
 
 1. **The system prompt sets standing priorities.** It covers judgment, execution, collaboration, and craft. The instructions are English; replies follow your latest language.
-2. **Steer refreshes those priorities when the client dispatches a Hook event.** The local script returns a focused reminder as developer context. Hook delivery is client-dependent, so verify it in your Codex client before relying on it.
+2. **Steer refreshes the relevant priorities near each input.** The local plugin sends user reminders to main, scoped reminders to children, and result-consumption reminders to main after a completed wait. A child's paired startup events produce one reminder. [Installation details](docs/install.md#add-optional-per-turn-steering) cover the events and client entry points.
 
-`prompts/sub.md` is included for roles you choose. Main and sub prompts each contain the complete behavior; the installer connects the user-turn Steer route.
+`prompts/sub.md` is included for roles you choose. Main and sub prompts each contain the complete behavior; `--hooks` installs all three reminder routes.
 
 ---
 

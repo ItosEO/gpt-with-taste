@@ -21,7 +21,7 @@ Restore returns those groups to their original pre-install values, not to the in
 
 ## If recovery reports drift
 
-Recovery checks managed files, the instruction line, receipt-owned legacy Hook groups and the plugin's registered root, enabled state and recorded cache bytes before removing or overwriting them. If someone changed a managed item, it stops. `--replace-managed` does not bypass drift protection.
+For an applied installation, recovery checks managed files, the instruction line, receipt-owned legacy Hook groups and the plugin's registered root, enabled state and recorded cache bytes before replacing them. For an interrupted `applying` or `restoring` operation, it also accepts the recorded partial states, including a missing or disabled plugin, so recovery can finish. A conflicting user edit stops recovery; reconcile the named item before retrying.
 
 Keep the receipt. Save wanted edits, reconcile the named item with the installed state recorded there, and rerun restore. Unrelated config lines and other Hook groups need no reconciliation. Managed source bytes are in `files[].after`; their original bytes are in `files[].before` (`null` means absent). Plugin cache bytes are recorded separately in `plugin.cacheFiles`; Codex removes its own installed cache through the CLI.
 

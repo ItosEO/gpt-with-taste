@@ -14,6 +14,7 @@ export async function pluginBundle(root) {
     ['.agents/plugins/marketplace.json', 'plugin/marketplace.json'],
     ['plugins/gpt-with-taste/.codex-plugin/plugin.json', 'plugin/plugin.json'],
     ['plugins/gpt-with-taste/hooks/steer.mjs', 'hooks/steer.mjs'],
+    ['plugins/gpt-with-taste/hooks/local-tools.mjs', 'hooks/local-tools.mjs'],
     ...['user', 'sub', 'agent'].map(name => [
       `plugins/gpt-with-taste/prompts/${name}-steer.md`, `prompts/${name}-steer.md`,
     ]),
@@ -24,10 +25,14 @@ export async function pluginBundle(root) {
     files.set(`${MARKET_ROOT}/${target}`, bytes);
   }
   const node = process.execPath.replaceAll('\\', '/');
-  const quote = process.platform === 'win32' ? `"${node}"` : `'${node.replaceAll("'", "'\\''")}'`;
+  // PowerShell invokes a quoted executable with &, and passes the official
+  // plugin-root environment value as data rather than interpolated shell text.
+  const invocation = process.platform === 'win32'
+    ? `if (!$env:PLUGIN_ROOT) { [Console]::Error.WriteLine('GPT with Taste Hook [LAUNCH_FAILURE]: PLUGIN_ROOT is missing'); exit 1 }; & '${node.replaceAll("'", "''")}' (Join-Path $env:PLUGIN_ROOT 'hooks/steer.mjs')`
+    : `'${node.replaceAll("'", "'\\''")}' "\${PLUGIN_ROOT}/hooks/steer.mjs"`;
   const fallbackRoute = {UserPromptSubmit: 'user', SubagentStart: 'sub', PostToolUse: 'agent'};
   const hooks = Object.fromEntries(ROUTES.map(route => {
-    const command = `${quote} "\${PLUGIN_ROOT}/hooks/steer.mjs" --route ${fallbackRoute[route.event]}`;
+    const command = `${invocation} --route ${fallbackRoute[route.event]}`;
     return [route.event, [hookGroup(command, route.matcher)]];
   }));
   files.set(`${MARKET_ROOT}/plugins/${PLUGIN}/hooks/hooks.json`,

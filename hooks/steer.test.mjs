@@ -4,7 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {test} from 'node:test';
-import {fallbackHook, handleHook} from './steer.mjs';
+import {fallbackHook, handleHook, evaluateHook} from './steer.mjs';
+import {normalizeLocalTool, WAIT_TOOL_MATCHER} from './local-tools.mjs';
 function fixture(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gpt-with-taste-hook-'));
   for (const source of ['user', 'sub', 'agent']) fs.writeFileSync(path.join(dir, `${source}-steer.md`), `${source.toUpperCase()} WHOLE SOURCE\n`);
@@ -25,7 +26,11 @@ test('each input source targets only its own consumer', t => {
   context({hook_event_name: 'UserPromptSubmit', session_id: 'main', prompt: 'ordinary human request'}, 'user', dir);
   context({hook_event_name: 'SubagentStart', session_id: 'parent', agent_id: 'child', agent_type: 'explore'}, 'sub', dir);
   context({hook_event_name: 'UserPromptSubmit', session_id: 'child', agent_id: 'child', prompt: 'parent follow-up'}, 'sub', dir);
-  context({hook_event_name: 'PostToolUse', tool_name: 'wait_agent', tool_response: JSON.stringify({status: {child: {completed: 'Full unmodified receipt'}}, timed_out: false})}, 'agent', dir);
+  for (const tool_name of ['wait_agent', 'multi_agent_v1wait_agent']) {
+    context({hook_event_name: 'PostToolUse', tool_name, tool_response: JSON.stringify({status: {child: {completed: 'Full unmodified receipt'}}, timed_out: false})}, 'agent', dir);
+    assert.deepEqual(handleHook({hook_event_name: 'PostToolUse', tool_name, agent_id: 'child', tool_response: {status: {other: {completed: 'receipt'}}, timed_out: false}}, dir), {continue: true});
+    assert.deepEqual(handleHook({hook_event_name: 'PostToolUse', tool_name, tool_response: {status: {child: {running: true}}, timed_out: true}}, dir), {continue: true});
+  }
 });
 test('shell, MCP, subagent stop, spawn ids, timeouts and child tool results receive no main agent steer', t => {
   const dir = fixture(t);
@@ -37,7 +42,8 @@ test('shell, MCP, subagent stop, spawn ids, timeouts and child tool results rece
     {hook_event_name: 'PostToolUse', tool_name: 'wait_agent', tool_response: {status: {}, timed_out: true}},
     {hook_event_name: 'PostToolUse', tool_name: 'wait_agent', tool_response: {status: {child: {running: true}}}},
     {hook_event_name: 'PostToolUse', tool_name: 'wait_agent', tool_response: 'Error: unavailable'},
-    {hook_event_name: 'PostToolUse', tool_name: 'wait_agent', agent_id: 'child', tool_response: {status: {other: {completed: 'receipt'}}}},
+    {hook_event_name: 'PostToolUse', tool_name: 'wait_agent', tool_response: {status: {child: {completed: 'partial'}}, timed_out: true}},
+    {hook_event_name: 'PostToolUse', tool_name: 'wait_agent', agent_id: 'child', tool_response: {status: {other: {completed: 'receipt'}}, timed_out: false}},
     {hook_event_name: 'PreToolUse', tool_name: 'send_input', tool_input: {id: 'child', message: 'Parent brief stays intact'}},
   ]) assert.deepEqual(handleHook(event, dir), {continue: true});
 });
@@ -50,10 +56,10 @@ test('malformed event and missing source fail visibly', t => {
   assert.throws(() => handleHook({hook_event_name: 'SubagentStart'}, dir), /ENOENT/);
 });
 
-function runCli(args, input, audit) {
+function runCli(args, input, audit, environment = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [path.join(import.meta.dirname, 'steer.mjs'), ...args], {
-      env: {...process.env, ...(audit ? {GPT_WITH_TASTE_HOOK_AUDIT: audit} : {})},
+      env: {...process.env, ...(audit ? {GPT_WITH_TASTE_HOOK_AUDIT: audit} : {}), ...environment},
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     let stdout = '', stderr = '';
@@ -65,20 +71,17 @@ function runCli(args, input, audit) {
   });
 }
 
-test('empty stdin uses only an explicit route fallback and audits it', async t => {
+test('empty stdin fails with missing metadata for every route and never synthesizes context', async t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gpt-with-taste-cli-'));
   t.after(() => fs.rmSync(dir, {recursive: true}));
   for (const route of ['user', 'sub', 'agent']) {
-    const audit = path.join(dir, `${route}.jsonl`);
-    const result = await runCli(['--route', route], '', audit);
-    assert.equal(result.code, 0);
-    const output = JSON.parse(result.stdout);
-    assert.match(output.hookSpecificOutput.additionalContext, new RegExp(`<gpt-with-taste-${route}-steer>`));
-    assert.deepEqual(JSON.parse(fs.readFileSync(audit, 'utf8')), {
-      event: {user: 'UserPromptSubmit', sub: 'SubagentStart', agent: 'PostToolUse'}[route],
-      sessionId: null, turnId: null, agentId: null, agentType: null, tool: null, toolUseId: null,
-      route, fallback: true, injected: true,
-    });
+    const audit=path.join(dir,`${route}.jsonl`);
+    const result=await runCli(['--route',route],'',audit);
+    assert.equal(result.code,1);
+    assert.equal(result.stdout,'');
+    assert.match(result.stderr,/\[MISSING_METADATA\].*requires event JSON/);
+    const record=JSON.parse(fs.readFileSync(audit,'utf8'));
+    assert.equal(record.reason,'MISSING_METADATA');assert.equal(record.injected,false);
   }
 });
 
@@ -99,4 +102,85 @@ test('valid JSON keeps the original route selection and does not use fallback', 
   const record = JSON.parse(fs.readFileSync(audit, 'utf8'));
   assert.equal(record.route, 'user');
   assert.equal(record.fallback, false);
+});
+
+
+test('a child first turn gets Sub once while later parent messages keep their reminder', t => {
+  const prompts = fixture(t);
+  const data = path.join(prompts, 'plugin-data');
+  const identity = {session_id: 'parent', agent_id: 'child', turn_id: 'first'};
+  const start = handleHook({...identity, hook_event_name: 'SubagentStart'}, prompts, data);
+  assert.match(start.hookSpecificOutput.additionalContext, /<gpt-with-taste-sub-steer>/);
+  assert.deepEqual(handleHook({...identity, hook_event_name: 'UserPromptSubmit'}, prompts, data), {continue: true});
+  const followup = handleHook({...identity, turn_id: 'second', hook_event_name: 'UserPromptSubmit'}, prompts, data);
+  assert.match(followup.hookSpecificOutput.additionalContext, /<gpt-with-taste-sub-steer>/);
+  // A start record must never suppress a different turn, even if its first input was absent.
+  handleHook({...identity, agent_id: 'other', hook_event_name: 'SubagentStart'}, prompts, data);
+  assert.match(handleHook({...identity, agent_id: 'other', turn_id: 'later', hook_event_name: 'UserPromptSubmit'}, prompts, data).hookSpecificOutput.additionalContext, /<gpt-with-taste-sub-steer>/);
+});
+
+
+test('formal local function names normalize without accepting shell or MCP lookalikes', t => {
+  const dir = fixture(t), matcher = new RegExp(WAIT_TOOL_MATCHER);
+  for (const name of ['wait_agent', 'multi_agent_v1.wait_agent', 'multi_agent_v1wait_agent']) {
+    assert.equal(normalizeLocalTool(name), 'wait_agent');
+    assert.equal(matcher.test(name), true);
+    context({hook_event_name:'PostToolUse',tool_name:name,tool_response:{status:{child:{completed:'whole receipt'}},timed_out:false}}, 'agent', dir);
+  }
+  for (const name of ['Bash','mcp__server__wait_agent','multi_agent_v1.wait','multi_agent_v2wait_agent','prefix_wait_agent','multi_agent_v1Xwait_agent']) {
+    assert.equal(normalizeLocalTool(name), null);
+    assert.equal(matcher.test(name), false);
+  }
+});
+
+test('event outcomes distinguish unsupported, incomplete, deduplicated and missing metadata', t => {
+  const dir = fixture(t), data = path.join(dir,'data');
+  assert.equal(evaluateHook({hook_event_name:'SessionStart'},dir).reason,'UNSUPPORTED_EVENT');
+  assert.equal(evaluateHook({hook_event_name:'PostToolUse',tool_name:'Bash'},dir).reason,'UNSUPPORTED_TOOL');
+  assert.equal(evaluateHook({hook_event_name:'PostToolUse',tool_name:'multi_agent_v1wait_agent',tool_response:{status:{child:'not_found'},timed_out:false}},dir).reason,'NOT_COMPLETED');
+  assert.equal(evaluateHook({hook_event_name:'PostToolUse',tool_name:'wait_agent',agent_id:'child'},dir).reason,'CHILD_RESULT');
+  for (const event of [{}, {hook_event_name:'PostToolUse'}, {hook_event_name:'PostToolUse',tool_name:'wait_agent'}, {hook_event_name:'SubagentStart',agent_id:'child'}]) {
+    assert.throws(()=>evaluateHook(event,dir,data), {code:'MISSING_METADATA'});
+  }
+  const identity={session_id:'parent',agent_id:'child',turn_id:'first'};
+  assert.equal(evaluateHook({...identity,hook_event_name:'SubagentStart'},dir,data).reason,'INJECTED');
+  assert.equal(evaluateHook({...identity,hook_event_name:'UserPromptSubmit'},dir,data).reason,'DEDUPLICATED');
+  assert.equal(evaluateHook({...identity,turn_id:'later',hook_event_name:'UserPromptSubmit'},dir,data).reason,'INJECTED');
+  fs.unlinkSync(path.join(dir,'user-steer.md'));
+  assert.throws(()=>evaluateHook({hook_event_name:'UserPromptSubmit'},dir),{code:'MISSING_SOURCE'});
+});
+
+test('optional audit failure keeps normal context; required child state failure is explicit', async t => {
+  const dir=fixture(t), event={hook_event_name:'UserPromptSubmit',session_id:'main',turn_id:'turn'};
+  const optional=await runCli(['--route','user'],JSON.stringify(event),dir);
+  assert.equal(optional.code,0);
+  assert.match(JSON.parse(optional.stdout).hookSpecificOutput.additionalContext,/<gpt-with-taste-user-steer>/);
+  assert.match(optional.stderr,/\[AUDIT_WRITE_FAILED\]/);
+  const blocked=path.join(dir,'not-a-directory');fs.writeFileSync(blocked,'owned fixture');
+  const required=await runCli(['--route','sub'],JSON.stringify({hook_event_name:'SubagentStart',session_id:'main',agent_id:'child',turn_id:'first'}),null,{PLUGIN_DATA:blocked});
+  assert.equal(required.code,1);assert.equal(required.stdout,'');
+  assert.match(required.stderr,/\[STATE_IO_FAILED\]/);
+  assert.ok(required.stderr.includes(blocked));
+  const malformed=await runCli([],JSON.stringify({hook_event_name:'PostToolUse'}),null);
+  assert.equal(malformed.code,1);assert.match(malformed.stderr,/\[MISSING_METADATA\].*tool_name/);
+});
+
+
+test('CLI child routes require plugin state while valid state preserves initial dedup and followups', async t => {
+  const dir=fixture(t), identity={session_id:'main',agent_id:'child',turn_id:'first'};
+  for (const hook_event_name of ['SubagentStart','UserPromptSubmit']) {
+    const input=JSON.stringify({...identity,hook_event_name});
+    for (const PLUGIN_DATA of [undefined,'']) {
+      const missing=await runCli(['--route','sub'],input,null,{PLUGIN_DATA});
+      assert.equal(missing.code,1);assert.equal(missing.stdout,'');
+      assert.match(missing.stderr,/\[MISSING_METADATA\].*PLUGIN_DATA/);
+    }
+  }
+  const environment={PLUGIN_DATA:path.join(dir,'data')};
+  const start=await runCli(['--route','sub'],JSON.stringify({...identity,hook_event_name:'SubagentStart'}),null,environment);
+  assert.equal(start.code,0,start.stderr);assert.match(JSON.parse(start.stdout).hookSpecificOutput.additionalContext,/<gpt-with-taste-sub-steer>/);
+  const initial=await runCli(['--route','user'],JSON.stringify({...identity,hook_event_name:'UserPromptSubmit'}),null,environment);
+  assert.equal(initial.code,0,initial.stderr);assert.deepEqual(JSON.parse(initial.stdout),{continue:true});
+  const later=await runCli(['--route','user'],JSON.stringify({...identity,turn_id:'later',hook_event_name:'UserPromptSubmit'}),null,environment);
+  assert.equal(later.code,0,later.stderr);assert.match(JSON.parse(later.stdout).hookSpecificOutput.additionalContext,/<gpt-with-taste-sub-steer>/);
 });

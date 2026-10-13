@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {spawn} from 'node:child_process';
 import {run} from './install.mjs';
 import {setInstructions} from '../src/toml-overlay.mjs';
 import {hookGroup, installHook, ROUTES} from '../src/hooks-overlay.mjs';
-import {MARKET, MARKET_ROOT, ID} from '../src/codex-plugin.mjs';
+import {MARKET, MARKET_ROOT, ID, pluginBundle} from '../src/codex-plugin.mjs';
 const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const scratch=path.join(repo,'.tmp/install-test');
 const receipt=root=>path.join(root,'.gpt-with-taste/install-receipt.json');
@@ -16,7 +17,7 @@ async function fixture(t){
   await fs.mkdir(scratch,{recursive:true});const dir=await fs.mkdtemp(path.join(scratch,'case-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
   const root=path.join(dir,'clone'),home=path.join(dir,'Codex Home');await fs.mkdir(home,{recursive:true});
   for(const [name,text]of Object.entries({main:'FIXTURE MAIN — no behavioral claim',sub:'FIXTURE SUB','user-steer':'FIXTURE USER STEER','sub-steer':'FIXTURE SUB STEER','agent-steer':'FIXTURE AGENT STEER'}))await put(path.join(root,`prompts/${name}.md`),text+'\n');
-  for(const file of ['hooks/steer.mjs','plugin/plugin.json','plugin/marketplace.json'])await put(path.join(root,file),await fs.readFile(path.join(repo,file)));
+  for(const file of ['hooks/steer.mjs','hooks/local-tools.mjs','plugin/plugin.json','plugin/marketplace.json'])await put(path.join(root,file),await fs.readFile(path.join(repo,file)));
   const state={market:null,plugin:null},calls=[];
   const api={
     async inventory(){calls.push('inventory');return structuredClone(state);},
@@ -48,7 +49,7 @@ test('plugin bundle installs three routes, leaves all user hooks untouched, upda
   const {root,home,call,state,calls}=await fixture(t);await put(path.join(home,'hooks.json'),'USER HOOK JSON IS NOT OURS');await put(path.join(home,'config.toml'),original);
   await call();await call('--hooks','--dry-run');assert.equal(state.plugin,null);await call('--hooks');assert.equal(state.plugin.enabled,true);
   const data=JSON.parse(await fs.readFile(receipt(root)));const hooks=JSON.parse(await fs.readFile(path.join(data.plugin.cacheRoot,'hooks/hooks.json')));
-  assert.deepEqual(Object.keys(hooks.hooks),['UserPromptSubmit','SubagentStart','PostToolUse']);assert.equal(hooks.hooks.PostToolUse[0].matcher,'^wait_agent$');assert.equal(hooks.hooks.UserPromptSubmit[0].hooks[0].timeout,15);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,/\$\{PLUGIN_ROOT\}/);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,/--route user$/);assert.match(hooks.hooks.SubagentStart[0].hooks[0].command,/--route sub$/);assert.match(hooks.hooks.PostToolUse[0].hooks[0].command,/--route agent$/);
+  assert.deepEqual(Object.keys(hooks.hooks),['UserPromptSubmit','SubagentStart','PostToolUse']);assert.equal(hooks.hooks.PostToolUse[0].matcher,'^(?:wait_agent|multi_agent_v1\\.wait_agent|multi_agent_v1wait_agent)$');assert.equal(hooks.hooks.UserPromptSubmit[0].hooks[0].timeout,15);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,process.platform==='win32'?/\$env:PLUGIN_ROOT/:/\$\{PLUGIN_ROOT\}/);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,/--route user$/);assert.match(hooks.hooks.SubagentStart[0].hooks[0].command,/--route sub$/);assert.match(hooks.hooks.PostToolUse[0].hooks[0].command,/--route agent$/);
   const baseline=await fs.readFile(receipt(root));await call('--hooks');assert.deepEqual(await fs.readFile(receipt(root)),baseline);assert.equal(calls.filter(name=>name==='install').length,1);
   await put(path.join(root,'prompts/user-steer.md'),'UPDATED STEER');await call('--hooks');const updated=JSON.parse(await fs.readFile(receipt(root)));assert.equal(await fs.readFile(path.join(updated.plugin.cacheRoot,'prompts/user-steer.md'),'utf8'),'UPDATED STEER');assert.equal(updated.config.before,data.config.before);
   await fs.appendFile(path.join(home,'config.toml'),'[analytics]\r\nenabled = false\r\n');await call('--check');await call('--restore');assert.equal(state.market,null);assert.equal(state.plugin,null);assert.equal(await fs.readFile(path.join(home,'config.toml'),'utf8'),original+'[analytics]\r\nenabled = false\r\n');assert.equal(await fs.readFile(path.join(home,'hooks.json'),'utf8'),'USER HOOK JSON IS NOT OURS');assert.equal(await exists(path.join(home,MARKET_ROOT,'plugins/gpt-with-taste/hooks/steer.mjs')),false);
@@ -95,4 +96,27 @@ test('interrupted plugin removal resumes with the same receipt after the CLI rem
   const removeMarket=f.api.removeMarket;f.api.removeMarket=async()=>{throw new Error('MARKET REMOVE FAILED');};
   await assert.rejects(f.call('--restore'),/MARKET REMOVE FAILED/);assert.equal(f.state.plugin,null);assert.equal(JSON.parse(await fs.readFile(receipt(f.root))).status,'restoring');
   f.api.removeMarket=removeMarket;await f.call('--restore');assert.equal(f.state.market,null);assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),original);
+});
+
+
+test('Windows generated command invokes Node with plugin paths as data and keeps JSON routing', {skip:process.platform!=='win32'}, async t=>{
+  const {root}=await fixture(t);
+  const plugin=path.join(root,"Plugin's $root with spaces");
+  await fs.cp(path.join(repo,'hooks'),path.join(plugin,'hooks'),{recursive:true});
+  await fs.cp(path.join(repo,'prompts'),path.join(plugin,'prompts'),{recursive:true});
+  const bundle=await pluginBundle(repo);
+  const hooks=JSON.parse(bundle.get(`${MARKET_ROOT}/plugins/gpt-with-taste/hooks/hooks.json`));
+  const command=hooks.hooks.PostToolUse[0].hooks[0].command;
+  const result=await new Promise((resolve,reject)=>{
+    const child=spawn('powershell.exe',['-NoProfile','-Command',command],{env:{...process.env,PLUGIN_ROOT:plugin},stdio:['pipe','pipe','pipe']});
+    let stdout='',stderr='';child.stdout.on('data',c=>stdout+=c);child.stderr.on('data',c=>stderr+=c);child.on('error',reject);child.on('close',code=>resolve({code,stdout,stderr}));
+    child.stdin.end(JSON.stringify({hook_event_name:'PostToolUse',tool_name:'wait_agent',tool_response:{status:{child:{running:true}},timed_out:true}}));
+  });
+  assert.equal(result.code,0,result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout),{continue:true},'Valid running/timeout JSON must not use --route agent fallback');
+  const missing=await new Promise((resolve,reject)=>{
+    const child=spawn('powershell.exe',['-NoProfile','-Command',command],{env:{...process.env,PLUGIN_ROOT:''},stdio:['pipe','pipe','pipe']});
+    let stdout='',stderr='';child.stdout.on('data',c=>stdout+=c);child.stderr.on('data',c=>stderr+=c);child.on('error',reject);child.on('close',code=>resolve({code,stdout,stderr}));child.stdin.end('{}');
+  });
+  assert.equal(missing.code,1);assert.equal(missing.stdout,'');assert.match(missing.stderr,/\[LAUNCH_FAILURE\].*PLUGIN_ROOT/);
 });

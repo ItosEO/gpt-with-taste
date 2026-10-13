@@ -21,7 +21,7 @@ For an unknown differing managed target, review it and obtain approval before us
 
 ## Optional Hooks
 
-On the tested Codex `0.162.0-alpha.17.2` `exec resume` workflow, none of this plugin's three reminders reached their consumers. Recommend prompt-only behavior for that workflow. A client must dispatch the corresponding Hook events before optional steering is usable.
+Recommend Hooks for multi-turn work in Codex Desktop. The plugin refreshes the main agent's priorities, gives delegated agents their own reminder, and guides main when it collects a completed result. The previously tested `0.162.0-alpha.17.2` `exec resume` entry did not dispatch these events; use the complete main prompt for that entry.
 
 If the user requests the plugin definitions and has a Codex CLI supporting local marketplace/plugin install, list and remove commands:
 
@@ -33,11 +33,11 @@ node scripts/install.mjs --check --home "/absolute/path/to/.codex"
 
 Supply `--codex "/absolute/path/to/codex"` when it is not on PATH. The installer assembles its local marketplace, then uses normal Codex CLI commands to install `gpt-with-taste@gpt-with-taste-local`. Do not replace these with hand-written registry entries or an inline Hook loader.
 
-The three configured routes are user input to main, subagent input/startup to the child, and completed `wait_agent` receipts to main. Original tasks and tool results remain intact. Shell/MCP results, incomplete waits and `SubagentStop` are not main-result reminder channels.
+The three routes are user input to main, child startup/later input to the child, and completed local `wait_agent` receipts to main. The child receives one initial reminder across its paired startup events. A shared finite matcher accepts bare, dotted and flattened tool names. Original tasks and results remain intact.
 
-Have the user open Codex Desktop's **Settings → Hooks** with the same `CODEX_HOME`, or use `/hooks` in the interactive terminal. They should review and trust only this plugin's `UserPromptSubmit`, `SubagentStart` and `PostToolUse` definitions pointing to its `hooks/steer.mjs`; changed definitions need review again.
+For manual approval, use Codex Desktop's **Settings → Hooks** with the same `CODEX_HOME`, or `/hooks` in the interactive terminal. Review this plugin's `UserPromptSubmit`, `SubagentStart` and `PostToolUse` definitions pointing to `hooks/steer.mjs`; a changed definition needs approval again.
 
-The tested version's public app-server schema provides `hooks/list`, not a Hook trust-approval method. Do not substitute generic command approval, invent trust hashes or set a global bypass. `--check` verifies files and plugin installation state, not trust or delivery.
+If the user delegates these configuration edits, back up the config once and update only this plugin's exact Hook-state entries using the current client's documented schema and config API. Confirm the resulting enabled/trusted status with `hooks/list`; keep other Hook approvals and settings intact. `--check` verifies installation. Runtime acceptance requires the reminder in the receiving agent's context before its next model request. Keep a parent/child sample on one app-server instance through spawn, completion and result collection.
 
 Receipt-owned legacy Hook groups are migrated by exact command and event; other Hooks remain untouched. An unowned same-name marketplace/plugin is not adopted. Prompt-only updates leave the optional layer alone.
 

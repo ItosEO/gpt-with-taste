@@ -1,9 +1,10 @@
 import {isDeepStrictEqual as same} from 'node:util';
+import {WAIT_TOOL_MATCHER} from '../hooks/local-tools.mjs';
 // Event + exact command identify our groups. No substring or brand-name matching.
 export const ROUTES = [
   {event: 'UserPromptSubmit'},
   {event: 'SubagentStart'},
-  {event: 'PostToolUse', matcher: '^wait_agent$'},
+  {event: 'PostToolUse', matcher: WAIT_TOOL_MATCHER},
 ];
 export function hookGroup(command, matcher) {
   return {...(matcher ? {matcher} : {}), hooks: [{type: 'command', command, timeout: 15}]};
