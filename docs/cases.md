@@ -1,77 +1,36 @@
-# Real tasks that shaped the prompt
+# Cases
 
-A useful case makes a decision visible. These are development examples from ordinary tasks, with the resulting prompt changes explained beside them. The Map request is translated from Chinese; the Codex comparison uses its original English request. Code and diagnostics are preserved.
+These cases keep the request, run conditions, source material, and outputs together. A comparison is **verified** only when the original input and complete assistant output are archived; a candidate that lacks either is labeled **draft / unverified**.
 
-## Add a feature without charging old users a new prerequisite
+<a id="featured-case"></a>
 
-We asked GPT-6.1 Sol to extend a local copy of [`lukeed/clsx`](https://github.com/lukeed/clsx) 2.1.1:
+## Featured case · clsx onboarding
 
-> We sometimes store class-name conditions in a `Map<string, boolean>`. Let us pass it directly to clsx, like an object selecting the true keys. Add the types and README too. Keep the existing usage.
+**Status: draft / unverified.** This is the preferred case because it is a general documentation task: the same open-source project and request, written for a new user. It is not yet evidence of a complete builtin-vs-Taste model comparison.
 
-The first implementation supported Maps and passed the runtime tests. Its declarations also added this dependency:
+The archived material includes the same request, a byte-exact `clsx` 2.1.1 source snapshot, and two generated guide artifacts:
 
-```ts
-type ClassMap = Map<string, any>;
-```
+- [Task, run conditions, and source map](cases/clsx-onboarding/input.md)
+- [Builtin candidate guide](cases/clsx-onboarding/builtin.md)
+- [Taste candidate guide](cases/clsx-onboarding/taste.md)
+- [Archived reply notes](cases/clsx-onboarding/builtin-reply.md) · [Taste reply notes](cases/clsx-onboarding/taste-reply.md)
 
-Old projects that only passed strings, objects, and arrays now failed under their existing ES5 TypeScript configuration: `Cannot find name 'Map'`. The feature worked, but its prerequisite leaked into the old API.
+Both runs are described as GPT-6.1 Sol at high reasoning effort in native Codex 0.162.0-alpha.17.2, with the same input, source files, local instructions, and skills. The baseline source is the Codex model-catalog Sol instruction with the legacy `{{ personality }}` placeholder removed; the Taste source is the frozen `prompts/main.md`. Hooks were configured but produced zero Steer messages.
 
-A short follow-up led Sol to replace the global `Map` reference with a structural interface. We then refined the prompt's existing compatibility paragraph:
+The missing evidence is specific: the original full assistant messages are not archived. The two Markdown files are candidate document artifacts, not proof of complete model responses. The [static comparison page](../site/index.html) therefore shows this case as a draft and does not call its excerpts verified or verbatim model output.
 
-> Preserve the original entry points, data meaning, and usage conditions. Prerequisites for a new capability apply to the new usage; existing callers continue under their original contract.
+<a id="verified-evidence"></a>
 
-We returned to the untouched original source and sent only the original request. With that revision, Sol chose a structural `ClassMap` in its first implementation:
+## Verified evidence · Button class overrides
 
-```ts
-interface ClassMap {
-  readonly size: number;
-  forEach(callbackfn: (value: any, key: string) => void): void;
-}
-```
+**Status: verified comparison.** This earlier case remains the current evidence while the featured documentation case is completed.
 
-It also guarded runtime Map access so old environments could still use the original inputs. The same ES5 call that exposed the first regression compiled with the new declaration; native Map input remained supported.
+Two fresh native Codex 0.162.0-alpha.17.2 sessions received the same [request and starting document](cases/button-overrides/input.md). Both ran GPT-6.1 Sol at high reasoning effort with Hooks disabled. The baseline used the original Codex model-catalog Sol instructions exported by `codex debug models` (not a user override), with the legacy literal `{{ personality }}` placeholder removed. The Taste side used `prompts/main.md` from commit `1499070`. Both retained the same local AGENTS instructions and skills; the user's custom instruction file was excluded from the baseline.
 
-**What this taught us:** “Preserve existing behavior” should include the conditions under which users already use it. More checks are useful only when they inspect that actual contract.
+- [Complete builtin output](cases/button-overrides/builtin.md)
+- [Complete GPT with Taste output](cases/button-overrides/taste.md)
+- [Static excerpt with highlights](../site/index.html#verified-evidence)
 
-## Same Sol, same task: built-in instructions vs. GPT with Taste
+The task was to update a component guide so callers could safely override Tailwind utility classes. Both outputs use `clsx` with `tailwind-merge` and keep the caller's `className` last. The useful difference is instructional: the builtin output explains the mechanism first, while Taste leads with the helper and adds runnable examples for modifier-scoped overrides. Both retain the caveat about custom utilities.
 
-Two fresh native Codex 0.162.0-alpha.17.2 sessions received the same [starting document and request](cases/button-overrides/input.md):
-
-> Please inspect BUTTON_GUIDE.md and update it so callers can safely override Tailwind utility classes without conflicts, showing the recommended helper and usage pattern.
-
-Both ran GPT-6.1 Sol at high reasoning effort, with Hooks disabled. The baseline used the Sol instructions exported by `codex debug models`, with the legacy literal `{{ personality }}` placeholder removed; our side used `prompts/main.md` from commit `1499070`. Both retained the same local AGENTS instructions and skills. The user's custom instruction file was excluded from the baseline.
-
-Read the complete generated documents: [Codex built-in instructions](cases/button-overrides/builtin.md) · [GPT with Taste](cases/button-overrides/taste.md).
-
-Both chose `tailwind-merge` with `clsx`, put the caller's `className` last, and explained why concatenating classes alone fails. The useful differences are in how the guide teaches that choice:
-
-| Detail | Built-in instructions | GPT with Taste |
-| --- | --- | --- |
-| Opening | Introduces the two helpers, then explains CSS precedence. | Gives the helper and caller-last rule first, then explains CSS precedence. |
-| Component example | Keeps the original untyped parameters. | Adds a small `ButtonProps` definition. |
-| Modifier behavior | Explains a hover override in prose. | Shows hover replacement and responsive coexistence as two executable examples. |
-| Custom utilities | Places setup guidance before the helper. | Places setup guidance after modifier examples. |
-
-The built-in answer is already useful and shorter. We keep Taste's action-first opening and concrete modifier examples; they make the technique easier to apply. The extra props type is useful for a TypeScript guide, while a narrower class-merging example can omit it.
-
-A remaining habit appears in both closing replies. Taste adds “`.codex/` remains untouched”; the built-in answer adds “working tree is clean.” Those status lines answer no question in this documentation request. We refined the existing prompt and Steer around this example: finish with the usable result and relevant evidence, keep routine preservation reports in the work record, and surface preserved state when requested or when it changes use, acceptance, or recovery.
-
-**What this taught us:** inspect the actual passage rather than awarding a blanket win. Keep the explanation and examples that help the reader; remove the extra bookkeeping that does not.
-
-## Keep the explanation, remove the self-defense
-
-In a multi-head attention article, Sol explained that the main matrix-multiplication budget can remain similar as head count rises, while softmax work and explicitly stored attention matrices grow. Those mechanisms help a reader reason about implementation cost.
-
-It then added a sentence backing its wording with the original paper's description of the costs as “similar.” That sentence supplied no new mechanism or decision.
-
-Gemini and K3 both favored preserving the cost explanation and deleting the wording endorsement. We integrated that distinction into the prompt and Steer:
-
-> Decide whether the information answers a concrete question for this reader before polishing its wording. Delete useless self-justification entirely; do not preserve it under a more positive phrase or move it into a footnote.
-
-**What this taught us:** being less defensive is not the same as saying less about the subject. Keep useful mechanisms, evidence, and interpretations. Remove the sentences whose only job is to defend the author.
-
-## Bring a case worth changing the prompt for
-
-A helpful report includes the user's request, the necessary source material, the actual answer or change, and the decision that went wrong. One small excerpt with a clear consequence is often more useful than a long scorecard.
-
-Good next cases include an unnecessary clarification, a forwarded receipt that gives its reader no useful action, a fix that changes an existing contract, or a page whose extra small print makes the main operation harder to see.
+This case is evidence about the writing decision visible in those complete documents, not a performance score or a claim that one answer is universally better.

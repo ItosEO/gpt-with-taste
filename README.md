@@ -9,20 +9,21 @@
 </picture>
 
 <p align="center">
-  A drop-in behavioral recipe that stops Codex from acting like an anxious contractor.<br>
-  It makes ordinary calls, digests the noise, and delivers work with engineering and visual craft.<br>
-  Built for the GPT reasoning family — above all GPT-6.1 Sol and GPT-6 Astra. Replies follow the language you write in.
+  A drop-in behavioral recipe for Codex: make ordinary decisions, digest complexity, and deliver work with engineering and visual craft.<br>
+  Built for the GPT reasoning family, especially GPT-6.1 Sol and GPT-6 Astra. Replies follow the language you write in.
 </p>
 
 <p align="center">
   <a href="#install">Install</a> ·
   <a href="#what-changes">What changes</a> ·
-  <a href="#a-real-case">A real case</a> ·
+  <a href="#featured-case">Featured case</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#research">Research</a>
 </p>
 
 ---
+
+<a id="install"></a>
 
 ## Install
 
@@ -34,21 +35,21 @@ cd gpt-with-taste
 node scripts/install.mjs --hooks
 ```
 
-We recommend Hooks for multi-turn work when your Codex client dispatches the corresponding events: they bring the behavioral priorities back into focus near the current turn. For a complete prompt-only installation, use `node scripts/install.mjs` instead. No npm packages are needed.
+Use Hooks for multi-turn work when your Codex client dispatches the corresponding events. For a prompt-only installation, run `node scripts/install.mjs` instead. Neither route needs npm packages.
 
-Both routes install into your active `CODEX_HOME` (otherwise `~/.codex`), write the two managed prompt files, and point the top-level `model_instructions_file` at the main one. Your model, provider, effort, authentication, permissions, MCP servers, roles, and `AGENTS.md` stay exactly as they are. To target another home, add `--home` with a quoted absolute path, e.g. `--home "C:/Users/you/.codex"`.
+Both routes install into the active `CODEX_HOME` (otherwise `~/.codex`), write the two managed prompt files, and point `model_instructions_file` at the main one. Your model, provider, effort, authentication, permissions, MCP servers, roles, and `AGENTS.md` remain unchanged. To target another home, add `--home` with a quoted absolute path, for example `--home "C:/Users/you/.codex"`.
 
-With `--hooks`, trust the three installed definitions in Codex Desktop under **Settings → Hooks**, or in the interactive terminal with `/hooks`. Review `UserPromptSubmit`, `SubagentStart` and `PostToolUse` before enabling them.
+With `--hooks`, review and trust the three installed definitions in Codex Desktop under **Settings → Hooks**, or in the interactive terminal with `/hooks`. Enable only the events you want. Open a **new Codex session** after installation.
 
-Open a **new Codex session** to use the installed instructions.
-
-Prefer to delegate? Hand this repository to your coding assistant together with [docs/install-for-ai.md](docs/install-for-ai.md). To revert, [docs/recovery.md](docs/recovery.md) restores the managed state in one command. The full contract: [docs/install.md](docs/install.md).
+Prefer to delegate? Give your coding assistant this repository and [docs/install-for-ai.md](docs/install-for-ai.md). To recover the managed state, use [docs/recovery.md](docs/recovery.md). The complete installation contract is in [docs/install.md](docs/install.md).
 
 ---
 
+<a id="what-changes"></a>
+
 ## What changes
 
-GPT with Taste puts judgment into your outcome: choose sensible defaults, preserve supported claims, synthesize collaborator results, and finish well-crafted work. These are the habits it targets:
+GPT with Taste puts judgment into the outcome: choose sensible defaults, preserve supported claims, synthesize useful collaborator results, and finish work with care.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/comparison-diagram-dark.svg">
@@ -56,36 +57,46 @@ GPT with Taste puts judgment into your outcome: choose sensible defaults, preser
   <img alt="Default behavior vs. GPT with Taste — five everyday contrasts" src="assets/comparison-diagram-light.svg" width="100%">
 </picture>
 
-Judgment, continuous execution, collaboration, and engineering and visual craft all belong to the recipe. The task slices that shaped these rules live in [docs/research.md](docs/research.md#development-cases); the output differences are visible in the case below.
+The recipe combines judgment, continuous execution, collaboration, and engineering and visual craft. [Research](docs/research.md) explains the principles; [the case index](docs/cases.md) keeps the underlying inputs and outputs separate from draft material.
 
 ---
 
-## A real case
+<a id="featured-case"></a>
 
-Two fresh Codex sessions received the same request — update a component guide so callers can safely override Tailwind utility classes. Built-in instructions on the left, GPT with Taste on the right; these are the closing moments of each document:
+## Featured case · clsx onboarding
+
+**Draft / unverified.** The preferred case is a general documentation task: write a Chinese getting-started guide for people new to the open-source [`lukeed/clsx`](https://github.com/lukeed/clsx) project.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/case-button-overrides-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="assets/case-button-overrides-light.svg">
-  <img alt="Same task, two instruction sets — closing excerpts of each generated guide, compared" src="assets/case-button-overrides-light.svg" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/case-clsx-onboarding-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/case-clsx-onboarding-light.svg">
+  <img alt="Draft, unverified clsx onboarding artifact comparison" src="assets/case-clsx-onboarding-light.svg" width="100%">
 </picture>
 
-Both documents complete the task, and both keep the caveat about custom utilities. The difference is where the judgment goes: the built-in answer tells the reader what must be true, while the Taste answer hands over a working pattern. The quotes are verbatim; the highlights only mark them. Full comparison and original files: [docs/cases.md](docs/cases.md) · [site/index.html](site/index.html) (best opened from a local clone).
+The archive records the same request, GPT-6.1 Sol at high effort, native Codex 0.162.0-alpha.17.2, the builtin model-catalog instruction source versus the frozen Taste prompt, and Hooks configured but not triggered. It also contains the source snapshot and two generated guide artifacts.
+
+The original full assistant messages are not archived, so the artifacts are not presented as a verified or verbatim model-output comparison. Read the [case record](docs/cases.md#featured-case), or open the [static comparison page](site/index.html), which keeps this status visible and shows the missing-evidence note.
+
+The current verified evidence is the secondary [Button class override comparison](docs/cases.md#verified-evidence), with complete input and outputs. It remains available as a method reference rather than a performance score.
 
 ---
+
+<a id="how-it-works"></a>
 
 ## How it works
 
-1. **The system prompt does the heavy lifting.** It establishes standing instructions for judgment, execution, collaboration, and craft. The instructions are English; replies follow your latest language.
-2. **Steer refreshes those priorities when the client dispatches a Hook event.** The local script returns a focused reminder as developer context: make ordinary choices, absorb complexity, route selectively, and cut useless small print. The tested `exec resume` workflow did not dispatch these optional events, so verify delivery in your Codex client before relying on them.
+1. **The system prompt sets standing priorities.** It covers judgment, execution, collaboration, and craft. The instructions are English; replies follow your latest language.
+2. **Steer refreshes those priorities when the client dispatches a Hook event.** The local script returns a focused reminder as developer context. Hook delivery is client-dependent, so verify it in your Codex client before relying on it.
 
-`prompts/sub.md` is included for roles you choose. The installer connects the user-turn Steer; `sub-steer.md` and `agent-steer.md` are source files for separate delegated-agent and collaborator-result integrations. Main and sub prompts each contain the complete behavior.
+`prompts/sub.md` is included for roles you choose. Main and sub prompts each contain the complete behavior; the installer connects the user-turn Steer route.
 
 ---
 
+<a id="research"></a>
+
 ## Research
 
-[docs/research.md](docs/research.md) connects published findings to the recipe's design. One finding sets the tone: reviewer-oriented rewrites scored higher with AI reviewers while human readers found them harder to read. The same file holds the development cases that shaped the rules.
+[docs/research.md](docs/research.md) connects published findings to the recipe and documents the development loop. It distinguishes verified case evidence from the draft clsx candidate instead of treating a file's presence as behavioral proof.
 
 ---
 

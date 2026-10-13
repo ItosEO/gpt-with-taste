@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 416" width="960" height="416">
+  <defs>
+    <style>
+      .lane { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2.2px; }
+      .q { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 13.5px; font-weight: 400; }
+      .qmono { font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 12.5px; font-weight: 400; }
+      .hlc { font-weight: 600; fill: #F0886C; }
+      .hlt { font-weight: 600; fill: #56D39D; }
+      .code { font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, 'PingFang SC', 'Microsoft YaHei', monospace; font-size: 11px; }
+      .foot { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 11px; fill: #8B949E; }
+    </style>
+  </defs>
+
+  <!-- Canvas -->
+  <rect width="960" height="416" rx="14" fill="#0D1117"/>
+  <rect x="0.75" y="0.75" width="958.5" height="414.5" rx="13" fill="none" stroke="#30363D" stroke-width="1.5"/>
+
+  <!-- Lane headers -->
+  <text x="64" y="50" class="lane" fill="#F0886C">BUILTIN CANDIDATE</text>
+  <text x="508" y="50" class="lane" fill="#56D39D">TASTE CANDIDATE</text>
+  <rect x="64" y="66" width="832" height="1" fill="#30363D"/>
+  <line x1="480" y1="34" x2="480" y2="336" stroke="#30363D" stroke-width="1"/>
+
+  <!-- Left: builtin candidate artifact excerpt -->
+  <text x="64" y="94" class="qmono" fill="#8B949E">## 1. 安装并验证</text>
+
+  <text x="64" y="122" class="q" fill="#8B949E"><tspan class="hlc">先确认本机有 Node.js 和 npm</tspan><tspan>，然后在前端项目的</tspan></text>
+  <text x="64" y="142" class="q" fill="#8B949E"><tspan>根目录（有 </tspan><tspan class="qmono">package.json</tspan><tspan> 的目录）运行：</tspan></text>
+
+  <text x="64" y="170" class="q" fill="#8B949E"><tspan>这是应用运行时会用到的依赖，不要加 </tspan><tspan class="qmono">--save-dev</tspan><tspan>。</tspan></text>
+
+  <text x="64" y="198" class="q" fill="#8B949E">安装后，在同一目录运行：</text>
+
+  <text x="64" y="224" class="q" fill="#8B949E">应输出：</text>
+  <rect x="64" y="236" width="180" height="34" rx="6" fill="#161B22" stroke="#30363D" stroke-width="1"/>
+  <text x="76" y="257" class="code" fill="#E6EDF3">button button--active</text>
+
+  <text x="64" y="296" class="q" fill="#8B949E"><tspan>如果提示找不到 </tspan><tspan class="qmono">clsx</tspan><tspan>，</tspan><tspan class="hlc">确认安装命令已成功，</tspan></text>
+  <text x="64" y="316" class="q" fill="#8B949E"><tspan class="hlc">并且安装和验证都在同一个项目目录执行</tspan><tspan>。</tspan></text>
+
+  <!-- Right: Taste candidate artifact excerpt -->
+  <text x="508" y="94" class="qmono" fill="#8B949E">## 1. 安装并跑通第一个例子</text>
+
+  <rect x="508" y="112" width="388" height="149" rx="6" fill="#161B22" stroke="#30363D" stroke-width="1"/>
+  <text x="520" y="133" class="code" fill="#E6EDF3">const isActive = true;</text>
+  <text x="520" y="152" class="code" fill="#E6EDF3">const isDisabled = false;</text>
+  <text x="520" y="190" class="code" fill="#E6EDF3">const className = clsx('button', {</text>
+  <text x="520" y="209" class="code" fill="#E6EDF3">  'button--active': isActive,</text>
+  <text x="520" y="228" class="code" fill="#E6EDF3">  'button--disabled': isDisabled,</text>
+  <text x="520" y="247" class="code" fill="#E6EDF3">});</text>
+
+  <text x="508" y="289" class="q" fill="#F0F6FC"><tspan class="hlt">把 </tspan><tspan class="qmono hlt">isActive</tspan><tspan class="hlt"> 改成 </tspan><tspan class="qmono hlt">false</tspan><tspan class="hlt">，结果就只剩 </tspan><tspan class="qmono hlt">'button'</tspan><tspan class="hlt">。</tspan></text>
+  <text x="508" y="309" class="q" fill="#F0F6FC"><tspan class="hlt">在项目现有的开发环境中运行这段代码</tspan><tspan>，查看控制台输出即可确认。</tspan></text>
+
+  <!-- Footnote: candidate artifact boundary -->
+  <text x="64" y="356" class="foot">DRAFT / UNVERIFIED — same model, request, materials, AGENTS and skills on both sides.</text>
+  <text x="64" y="374" class="foot">Left: Codex catalog Sol instructions. Right: frozen main prompt. Hooks configured, not triggered.</text>
+  <text x="64" y="392" class="foot">Artifacts are archived; original full assistant messages are missing. Full originals: docs/cases/clsx-onboarding/</text>
+</svg>

@@ -91,3 +91,16 @@ The wordmark stays Latin in both languages; only the kicker and tagline localize
    ```
 2. **Zero Remote Resources**:
    No external `<link>` fonts or remote badge tracking images. All geometry and typography are self-contained vector SVGs.
+
+---
+
+## 8. Case excerpt SVGs (case-*.svg)
+
+960px-wide two-column excerpts put one comparison moment on the public surface. The asset must carry its evidence state with it:
+
+- **Verified excerpts use complete source material.** Copy lines byte-exact from archived outputs; never turn a summary or agent reply into a quote.
+- **Draft excerpts say so.** Candidate artifacts without the original full assistant messages use `DRAFT / UNVERIFIED` in the footnote and do not call their lines verbatim model output.
+- **Highlight by weight and color alone.** Emphasis uses semibold plus `accent-caution` (default side) or `accent-positive` (Taste side); no strikethroughs or editorial marks on quoted text.
+- **Symmetric typography.** Both columns share the same type scale so presentation does not decide the comparison.
+- **Method footnote.** The bottom lines record model, effort, client, hooks state, prompt source, and the evidence boundary. The README prose stays focused on the reader.
+- **Light/dark pair**, shipped as `case-<slug>-light.svg` and `case-<slug>-dark.svg`, wired through the same `<picture>` pattern as the banner.

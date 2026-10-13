@@ -40,10 +40,10 @@ The practical edit is often deletion. Once an example or interface already expla
 
 ## How evidence becomes a prompt change
 
-1. Keep the real task, materials, and model output.
+1. Keep the real task, materials, model, and output.
 2. Find the decision that produced the bad result.
 3. Edit the responsible prompt paragraph in place.
 4. Return to that task with ordinary user input.
 5. Keep, revise, or remove the change based on the result.
 
-The [case studies](cases.md) show this loop in writing and engineering. The prompts retain research reasoning as a task-specific section, alongside the judgment, execution, collaboration, and craft needed in everyday work.
+The [case index](cases.md) separates that evidence from candidate material. The verified Button comparison has complete input and outputs. The preferred clsx onboarding case remains draft / unverified until its original full assistant messages are archived.
