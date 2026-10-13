@@ -1,33 +1,31 @@
 # Prompt map
 
-The default product is the complete main prompt. One source serves the GPT model family, including GPT-6.1 Sol and GPT-6 Astra; it does not select a provider, model, or reasoning effort. The subagent prompt is also complete on its own. The three steer files are optional reminders for particular moments, not a second layer needed to recover missing capabilities.
+Default installation preserves Codex's built-in model instructions and copies the bundled prompt files without activating them. Users may manually add selected Taste principles to their own `developer_instructions`; the installer never edits that key. The complete main prompt is opt-in through `--override-base`. The compact subagent role is independently usable when explicitly configured. The three Hook steer files remain optional context reminders, not new role permissions.
 
 ## Choose the source for the reader
 
 | Source | Reader and placement | Job |
 | --- | --- | --- |
-| [`prompts/main.md`](../prompts/main.md) | The main Codex agent's instruction context | Own the user's result, make decisions, execute or delegate, integrate evidence, and deliver finished work. |
-| [`prompts/sub.md`](../prompts/sub.md) | A delegated agent's instruction context, alongside its actual role and assignment | Own the complete scoped result while preserving role, leaf, tool, support, and write boundaries. |
+| [`prompts/main.md`](../prompts/main.md) | Main base instructions, **only with `--override-base`** | Full alternative prompt for explicit replacement; not used by the native default. |
+| [`prompts/sub.md`](../prompts/sub.md) | Explicitly configured read-only subagent role | Concise, evidence-first research assignment; no edits, implementation or further delegation. |
 | [`prompts/user-steer.md`](../prompts/user-steer.md) | Optional reminder near each submitted user request to the main agent | Reconnect the request to the current goal, make ordinary choices, preserve existing usage, and select reader-useful content. |
-| [`prompts/sub-steer.md`](../prompts/sub-steer.md) | Optional reminder with input to a delegated agent | Continue the scoped assignment, finish local work, and report only real early coordination needs. |
+| [`prompts/sub-steer.md`](../prompts/sub-steer.md) | Optional reminder with input to a delegated agent | Stay focused on the assigned question, check decisive evidence, and return useful findings. No duplicated read-only rules. |
 | [`prompts/agent-steer.md`](../prompts/agent-steer.md) | Optional reminder when the main agent receives a collaborator message or task result | Reconcile evidence and decide before routing only the missing action-changing information. |
 
-The files are literal English instruction sources. They require no base-prompt placeholder, private path, model alias, or hidden companion file. English source does not fix the response language: the main and subagent prompts explicitly follow the user's latest conversational language, including a switch, while project artifacts follow project conventions and explicit artifact requirements. An explicitly chosen persona overrides the default warm, lively, opinionated voice.
+The main and user/agent steer sources use English; the compact subagent role and subagent steer use Chinese. The files require no base-prompt placeholder, private path, or hidden companion file. Languages in prompts do not override the user's requested output language. The native model prompt and role instructions remain under Codex's own control unless explicitly replaced or configured.
 
 ## Where the capabilities live
 
-| Capability | Main prompt | Subagent prompt |
+| Capability | Explicit full main prompt | Compact read-only subagent |
 | --- | --- | --- |
-| Full purpose, current stage, complete outcome, and few material questions | “Understand the purpose and the current assignment” | “Keep the assignment intact” |
-| Decisive judgment and taste in engineering, writing, visuals, and games | Opening; “Make taste visible in the work” | Opening; “Make a clear quality judgment” |
-| Continuous execution, reuse, diagnosis, and necessary adjacent repairs | “Take the shortest complete route” | “Reuse sound work and finish the implementation” |
-| Existing entry points, data meaning, and conditions of use | “Take the shortest complete route” | “Reuse sound work and finish the implementation” |
-| Direct work or delegation, one active owner, and actual scope limits | “Collaborate around real dependencies” | “Keep the assignment intact” |
-| Synthesis before routing, stable handoffs, and early messages only for action-changing conflicts | “Collaborate around real dependencies” | “Hand back a result the parent can use” |
-| Falsifiable questions, strong fair baselines, quantitative reasoning, counterevidence, and research continuation | “When the task involves research” | “When the task involves research” |
-| Consequence-based verification, evidence reuse, recovery, and the ban on nonessential hashing | “Verify what determines acceptance” | “Verify the risks that determine delivery” |
-| Reader First selection, whole-sentence deletion, useful explanations, and integrated revision | “Write for the reader's next action” | “Hand back a result the parent can use”; “Write for the recipient's next action” |
-| Actual permission, source identity, credentials, task continuity, and appropriate memory | “Respect authority, sources, and continuity” | “Preserve authority and continuity” |
+| User goal and task continuity | Understand the purpose and the current assignment | Keep the assigned scope and follow-up context |
+| Evidence and independent judgment | Research and decision sections | Critical unknowns, traceable evidence and clear uncertainty |
+| Engineering quality and visual taste | Make taste visible in the work | Outside the read-only role's responsibility |
+| Code editing, testing and recovery | Take the shortest complete route; verify acceptance | Investigation and preliminary verification only; no edits |
+| Delegation and coordination | Collaborate around real dependencies | No new subagents; concise handoff to parent |
+| Source and authorization boundaries | Respect authority, sources, and continuity | Explicit read-only role and source distinctions |
+
+The complete main remains available for deliberate experiments with model instruction replacement. The default install does not attach any of these role sources. Use developer instructions manually for selected Taste behavior.
 
 ## Why the rules are grouped this way
 
@@ -39,11 +37,11 @@ The files are literal English instruction sources. They require no base-prompt p
 
 **Research is conditional, not diminished.** Its own section keeps routine development from acquiring a mandatory research process. Both complete prompts retain falsifiable claims, fair baselines, traceable quantities and assumptions, original-source checks, and faithful positive and negative evidence. The main prompt also retains topic selection and cross-line synthesis. Counterevidence updates the topic, mechanism, configuration, or contribution it actually affects; a failed configuration need not end a worthwhile research goal. The subagent follows that reasoning within the parent's topic and authorization.
 
-**Collaboration centers on ownership and decisions.** The main agent may work directly or delegate. The collaboration sections distinguish receiving a result, adopting it, delivering it, and its actual consumption. The exhibition-loan example makes recipient-specific routing concrete: a framing dimensions request and a curator's installation conclusion are different messages. The subagent has the same obligation to judge and finish local work, without inheriting the parent's coordination powers.
+**Collaboration centers on ownership and decisions.** The main agent may work directly or delegate according to its actual permissions. The compact read-only subagent does investigation and evidence synthesis without implementation, agent creation or final decisions. The main agent owns integration, code changes, and final acceptance.
 
 **Reader First is selection before phrasing.** The prompts ask whether a sentence answers the reader's present question before asking how to polish it. Useless material is deleted, not restyled or moved to small print. The matrix-multiplication example retains the cost explanation and removes an endorsement of the paper's wording. The BLEU example keeps the observed result and the authors' interpretation together. These examples distinguish useful explanation from defensive repetition without weakening supported claims.
 
-**Verification follows the affected action.** Necessary behavioral, visual, and scientific evidence remains required. Reassurance reruns, unrelated review chains, and nonessential hashes are explicitly rejected. Recovery and permission conditions appear before the action they constrain, not as new blockers for independent ready work.
+**Verification follows the affected action.** The full main prompt retains risk-based verification guidance; the read-only subagent reports checkable facts, uncertainty and remaining gaps without making repository changes.
 
 ## Codex integration decisions
 
@@ -59,6 +57,6 @@ Selecting [optional hooks](install.md#add-optional-per-turn-steering) assembles 
 
 The Windows launcher invokes Node with PowerShell's `&` call operator and reads the official `PLUGIN_ROOT` environment value. Event JSON supplies the consumer and turn identity. Named diagnostics identify missing metadata or source/state failures; optional audit logging never blocks a successful context response. See [installation](install.md#add-optional-per-turn-steering) for setup and trust.
 
-The previously tested Codex `0.162.0-alpha.17.2` `exec resume` entry did not dispatch plugin events. For that entry point, use the complete main prompt. `--check` checks installed files and registration; runtime delivery is observed in the receiving agent's context.
+The previously tested Codex `0.162.0-alpha.17.2` `exec resume` entry did not dispatch plugin events. `--check` checks installed files and registration; runtime delivery is observed in the receiving agent's context. Native mode does not gain Hook reminders on entry points that do not dispatch the events.
 
-The delegated role's developer instructions were delivered, while its Sub instruction-file setting did not replace inherited Main base instructions. Complete Sub is a source for a chosen role's instruction composition, not an automatically installed child base. Follow [role setup](install.md#use-the-complete-subagent-prompt-for-a-selected-role), preserving the role's own contract and the runtime's actual permission boundaries.
+The delegated role's developer instructions were delivered, while its role-level instruction-file setting did not replace inherited main base instructions in the tested workflow. Compact Sub is a source for chosen role configuration, not an automatically installed child base. Follow [role setup](install.md#use-the-compact-subagent-role-prompt), preserving actual tool boundaries.
