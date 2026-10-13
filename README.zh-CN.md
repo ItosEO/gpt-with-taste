@@ -17,7 +17,6 @@
 <p align="center">
   <a href="#install">安装</a> ·
   <a href="#what-changes">改变什么</a> ·
-  <a href="#featured-case">首选案例</a> ·
   <a href="#how-it-works">工作机制</a> ·
   <a href="#research">研究依据</a>
 </p>
@@ -58,27 +57,7 @@ GPT with Taste 把判断力用在结果上：作出合理选择、保留有据�
   <img alt="默认行为与 GPT with Taste 的五组日常对照" src="assets/comparison-diagram-zh-light.svg" width="100%">
 </picture>
 
-这套配方结合了判断、连续执行、协作、工程与视觉审美。[研究依据](docs/research.md)解释原则；[案例索引](docs/cases.md)把底层输入、输出与草稿材料分开保存。
-
----
-
-<a id="featured-case"></a>
-
-## 首选案例 · clsx 中文上手
-
-**草稿 / 未核实。** 首选案例是一项更通用的文档任务：为刚接触开源项目 [`lukeed/clsx`](https://github.com/lukeed/clsx) 的前端同事写中文上手指南。
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/case-clsx-onboarding-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="assets/case-clsx-onboarding-light.svg">
-  <img alt="草稿、未核实的 clsx 上手文档候选对照" src="assets/case-clsx-onboarding-light.svg" width="100%">
-</picture>
-
-归档记录了同一份请求、GPT-6.1 Sol 高 effort、原生 Codex 0.162.0-alpha.17.2、Codex 模型目录内置提示词与冻结版 Taste 提示词的来源对照，以及已配置但未触发的 Hooks。仓库还保存了源文件快照与两份生成的指南文档。
-
-原始完整 assistant 消息尚未归档，因此这些文档不会被呈现为已核实或逐字的模型输出对照。请阅读[案例记录](docs/cases.md#featured-case)，或打开[静态对照页](site/index.html)；页面会保留这一状态和证据缺口说明。
-
-当前可用的核实证据是次要的 [Button 工具类覆盖对照](docs/cases.md#verified-evidence)，它保留了完整输入与输出，可作为方法参考，而不是性能评分。
+这套配方结合了判断、连续执行、协作、工程与视觉审美。在[研究依据](docs/research.md)中了解设计原则；在[案例索引](docs/cases.md)与[网页版对比展示](https://nb-corp.github.io/gpt-with-taste/)中查阅完整任务输入与实际对照输出。
 
 ---
 
@@ -97,7 +76,7 @@ GPT with Taste 把判断力用在结果上：作出合理选择、保留有据�
 
 ## 研究依据
 
-[docs/research.md](docs/research.md) 将公开研究与配方设计联系起来，并记录开发循环。文档明确区分已核实案例证据与 clsx 草稿，不把“文件存在”当作行为证据。
+[docs/research.md](docs/research.md) 梳理了配方背后的研究发现、提示词架构与迭代方法：防御性写作如何影响阅读体验、为何给模型保留常规判断空间，以及如何将协作与审查反馈直接转化为行动。
 
 ---
 

@@ -16,7 +16,6 @@
 <p align="center">
   <a href="#install">Install</a> ·
   <a href="#what-changes">What changes</a> ·
-  <a href="#featured-case">Featured case</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#research">Research</a>
 </p>
@@ -57,27 +56,7 @@ GPT with Taste puts judgment into the outcome: choose sensible defaults, preserv
   <img alt="Default behavior vs. GPT with Taste — five everyday contrasts" src="assets/comparison-diagram-light.svg" width="100%">
 </picture>
 
-The recipe combines judgment, continuous execution, collaboration, and engineering and visual craft. [Research](docs/research.md) explains the principles; [the case index](docs/cases.md) keeps the underlying inputs and outputs separate from draft material.
-
----
-
-<a id="featured-case"></a>
-
-## Featured case · clsx onboarding
-
-**Draft / unverified.** The preferred case is a general documentation task: write a Chinese getting-started guide for people new to the open-source [`lukeed/clsx`](https://github.com/lukeed/clsx) project.
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/case-clsx-onboarding-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="assets/case-clsx-onboarding-light.svg">
-  <img alt="Draft, unverified clsx onboarding artifact comparison" src="assets/case-clsx-onboarding-light.svg" width="100%">
-</picture>
-
-The archive records the same request, GPT-6.1 Sol at high effort, native Codex 0.162.0-alpha.17.2, the builtin model-catalog instruction source versus the frozen Taste prompt, and Hooks configured but not triggered. It also contains the source snapshot and two generated guide artifacts.
-
-The original full assistant messages are not archived, so the artifacts are not presented as a verified or verbatim model-output comparison. Read the [case record](docs/cases.md#featured-case), or open the [static comparison page](site/index.html), which keeps this status visible and shows the missing-evidence note.
-
-The current verified evidence is the secondary [Button class override comparison](docs/cases.md#verified-evidence), with complete input and outputs. It remains available as a method reference rather than a performance score.
+The recipe combines judgment, continuous execution, collaboration, and engineering and visual craft. Explore the principles in [Research](docs/research.md), or inspect complete runs, task inputs, and side-by-side outputs in the [Case Archive](docs/cases.md) and [Web Comparison](https://nb-corp.github.io/gpt-with-taste/).
 
 ---
 
@@ -96,7 +75,7 @@ The current verified evidence is the secondary [Button class override comparison
 
 ## Research
 
-[docs/research.md](docs/research.md) connects published findings to the recipe and documents the development loop. It distinguishes verified case evidence from the draft clsx candidate instead of treating a file's presence as behavioral proof.
+[docs/research.md](docs/research.md) details the findings, prompt architecture, and iteration loop behind the recipe: how defensive writing affects the reader's experience, why models need room for ordinary judgment, and how collaborator findings are turned into direct action.
 
 ---
 
