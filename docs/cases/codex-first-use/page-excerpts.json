@@ -1,0 +1,53 @@
+[
+  {
+    "theme": "从哪里开始",
+    "builtin": {
+      "file": "builtin.md",
+      "lines": [
+        1,
+        19
+      ],
+      "text": "# Codex 中文上手说明\n\n这份说明依据安装记录 `notes.md` 整理，未重新检查本机配置。先正常打开一个新的 Codex 会话，就可以开始使用已安装的 Main 提示词；逐轮提醒是可选项，不影响这一步。\n\n## 1. 直接开始使用\n\n像平常一样启动 Codex，新建会话并用中文提出任务即可：\n\n- 不需要选择 controller、添加 profile 参数或使用定制启动器。\n- 对话语言跟随用户；项目中的文档、代码等产物沿用项目语言。\n- 原有模型、provider、effort、权限、MCP、skills、AGENTS 和并发配置保持不变。\n\n本机 Codex home 是 `<CODEX_HOME>`。顶层 `config.toml` 的 `model_instructions_file` 已指向：\n\n```text\n<CODEX_HOME>/prompts/gpt-with-taste/main.md\n```\n\n安装记录中的一轮真实 GPT-6.1 Sol/high 请求已确认加载与作者源一致的完整英文 Main 正文。这是已完成的验证，不表示需要切换到该模型才能使用。"
+    },
+    "taste": {
+      "file": "taste.md",
+      "lines": [
+        1,
+        13
+      ],
+      "text": "# Codex 上手：直接开新会话\n\nGPT with Taste 已安装。**正常打开一个新的 Codex 会话，就会使用 Main 提示词**；不用选择 controller、添加 profile 参数，也不用定制启动器。\n\n## 先完成你的第一个任务\n\n用中文说明你要做什么、涉及哪些文件，以及怎样算完成。例如：\n\n> 帮我梳理这个项目的启动步骤，先只读文件，不修改任何内容。\n\n对话语言跟随你，项目产物沿用项目语言。安装的提示词是英文，不影响用中文交流。\n\n本次安装没有改动你原来的模型、provider、effort、权限、MCP、skills、AGENTS 或并发配置，继续按原来的方式使用即可。"
+    }
+  },
+  {
+    "theme": "交付回复",
+    "builtin": {
+      "file": "builtin-assistant.json",
+      "ordinal": 52,
+      "text": "已根据 `notes.md` 写好 [START_HERE.md](builtin.md)，包含直接使用、可选提醒启用、未验证事项及恢复步骤。仅新增该文件，未检查或修改实际配置。"
+    },
+    "taste": {
+      "file": "taste-assistant.json",
+      "ordinal": 35,
+      "text": "已根据 `notes.md` 写好 [START_HERE.md](taste.md)，包含新会话用法、Main/Sub 当前状态、可选提醒启用步骤及恢复命令。"
+    }
+  },
+  {
+    "theme": "检查记录与起步动作",
+    "builtin": {
+      "file": "builtin.md",
+      "lines": [
+        79,
+        83
+      ],
+      "text": "## 5. 验证与源码边界\n\n安装记录已完成 17 个 fixture 检查和一项真实 CLI 集成检查，覆盖安装、更新、旧 Hook 去重、保留原恢复值和恢复路径。真实 home 的 install、check、restore dry-run 均正常结束，**没有执行真实卸载**。\n\n公开源码仓库是 <https://github.com/NB-Corp/gpt-with-taste>。本机上述插件安装源码尚未推送到公开仓，README 展示制作也处于暂停状态；不要假定从公开仓重新下载即可复现本机这次插件安装。"
+    },
+    "taste": {
+      "file": "taste.md",
+      "lines": [
+        1,
+        13
+      ],
+      "text": "# Codex 上手：直接开新会话\n\nGPT with Taste 已安装。**正常打开一个新的 Codex 会话，就会使用 Main 提示词**；不用选择 controller、添加 profile 参数，也不用定制启动器。\n\n## 先完成你的第一个任务\n\n用中文说明你要做什么、涉及哪些文件，以及怎样算完成。例如：\n\n> 帮我梳理这个项目的启动步骤，先只读文件，不修改任何内容。\n\n对话语言跟随你，项目产物沿用项目语言。安装的提示词是英文，不影响用中文交流。\n\n本次安装没有改动你原来的模型、provider、effort、权限、MCP、skills、AGENTS 或并发配置，继续按原来的方式使用即可。"
+    }
+  }
+]

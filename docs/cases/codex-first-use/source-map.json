@@ -1,0 +1,70 @@
+{
+  "task": "根据 notes.md，给刚装好的同事写一份中文上手说明，放 START_HERE.md。",
+  "outputPath": "START_HERE.md",
+  "source": "source/notes.md",
+  "sourceDescription": "Recorded installation facts: Main activation, optional plugin trust, child-role state and restore route",
+  "runDate": "2026-10-13",
+  "runs": {
+    "builtin": {
+      "date": "2026-10-13",
+      "cli": "0.162.0-alpha.17.2",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "provider": "codex_local_access",
+      "requestOrdinal": 6,
+      "assistantOrdinals": [
+        9,
+        38,
+        52
+      ],
+      "assistantMessages": "builtin-assistant.md",
+      "assistantData": "builtin-assistant.json",
+      "document": "builtin.md",
+      "effectivePrompt": "prompts/builtin-effective-base.md",
+      "hooks": false,
+      "steerMessages": 0,
+      "webActions": 0,
+      "multiAgent": "disabled"
+    },
+    "taste": {
+      "date": "2026-10-13",
+      "cli": "0.162.0-alpha.17.2",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "provider": "codex_local_access",
+      "requestOrdinal": 6,
+      "assistantOrdinals": [
+        35
+      ],
+      "assistantMessages": "taste-assistant.md",
+      "assistantData": "taste-assistant.json",
+      "document": "taste.md",
+      "effectivePrompt": "prompts/taste-main.md",
+      "hooks": false,
+      "steerMessages": 0,
+      "webActions": 0,
+      "multiAgent": "disabled"
+    }
+  },
+  "baselineSource": "Official native Codex gpt-6.1-sol model catalog from codex debug models",
+  "baselineProcessing": "Only the legacy literal {{ personality }} slot and following two newlines removed",
+  "tasteSource": {
+    "path": "prompts/main.md",
+    "snapshot": "prompts/taste-main.md",
+    "commit": "2f83a281e6a1de50e8b109a9b3bf5bbe19ef9d64"
+  },
+  "sharedConditions": {
+    "sameInput": true,
+    "sameNotes": true,
+    "sameGlobalAgentCore": true,
+    "userAndRepoSkillsDisabled": true,
+    "systemSkillsRetained": true,
+    "sameExecutionBoundary": "Only local notes; no live configuration inspection, network sources, dependency installation, additional model services or Git actions",
+    "permissions": "workspace-write",
+    "webSearch": "disabled",
+    "hooks": false,
+    "multiAgent": false,
+    "steerMessages": 0
+  },
+  "redactions": "Local Codex home and CLI paths replaced with <CODEX_HOME> and <CODEX_CLI>; assistant output links point to the archived guide. Other output text is unchanged."
+}
