@@ -88,7 +88,7 @@ test('unknown managed bytes require explicit replacement and restore exactly',as
   await assert.rejects(call(),/Unknown managed target/);assert.equal(await exists(receipt(root)),false);await call('--replace-managed');await call('--restore');assert.deepEqual(await fs.readFile(file),old);assert.equal(await exists(path.join(home,'config.toml')),false);
 });
 test('managed prompt/config drift stops recovery before changing state',async t=>{
-  const {home,root,call}=await fixture(t);await call('--override-base');const file=path.join(home,'prompts/gpt-with-taste/main.md'),installed=await fs.readFile(file);await put(file,'USER EDIT');const before=await fs.readFile(receipt(root));await assert.rejects(call('--replace-managed'),/drifted/);await assert.rejects(call('--restore'),/drifted/);assert.deepEqual(await fs.readFile(receipt(root)),before);
+  const {home,root,call}=await fixture(t);await call('--override-base');const file=path.join(home,'prompts/gpt-with-taste/main.md'),installed=await fs.readFile(file);await put(file,'USER EDIT');const before=await fs.readFile(receipt(root));await assert.rejects(call('--override-base','--replace-managed'),/drifted/);await assert.rejects(call('--restore'),/drifted/);assert.deepEqual(await fs.readFile(receipt(root)),before);
   await put(file,installed);await put(path.join(home,'config.toml'),'model_instructions_file = "other.md"\n');await assert.rejects(call('--restore'),/config key has drifted/);
 });
 test('plugin bundle installs three routes, leaves all user hooks untouched, updates and restores',async t=>{
