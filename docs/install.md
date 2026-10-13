@@ -1,90 +1,103 @@
 # Install GPT with Taste in Codex
 
-Start with the default prompt-only installation. It replaces Codex's built-in model instructions while keeping your selected model, provider and other settings. Hooks are optional.
+The default installation **keeps Codex's built-in model instructions**. It copies the two prompt sources into the active Codex home; it does not change `config.toml`, `model_instructions_file`, or `developer_instructions`. Enable Hooks independently, or explicitly request a full base-instruction override.
 
-## Install and start a new session
+## Install, preview and check
 
-1. Install Node.js **22 or newer**, then open a terminal in this clone's root directory. No npm packages are needed. Codex must support `model_instructions_file`.
-2. Use the absolute Codex home you already use, such as `"C:/Users/you/.codex"` on Windows. Use the same path in every command.
-3. Preview, install and check:
+Node.js **22+** is required. No npm dependencies are installed.
 
-   ```sh
-   node scripts/install.mjs --home "/absolute/path/to/.codex" --dry-run
-   node scripts/install.mjs --home "/absolute/path/to/.codex"
-   node scripts/install.mjs --check --home "/absolute/path/to/.codex"
-   ```
+```sh
+git clone https://github.com/ItosEO/gpt-with-taste.git
+cd gpt-with-taste
+node scripts/install.mjs --dry-run
+node scripts/install.mjs
+node scripts/install.mjs --check
+```
 
-   If a command reports a conflict, follow [Update or resolve a conflict](#update-or-resolve-a-conflict).
-4. Open a **new Codex session**. No custom launcher or profile flag is needed.
+Pass `--home "/absolute/path/to/.codex"` to use a specific Codex home. Without it, the installer selects `CODEX_HOME` or `~/.codex`. Use the same `--home` for every install, check and restore command.
 
-If you omit `--home`, the installer uses `CODEX_HOME` when set, otherwise `~/.codex`. Keep this clone and its private `.gpt-with-taste/install-receipt.json` for recovery. The receipt records previous managed state, not your full configuration or authentication files.
+Default managed sources:
 
-## What the default installs
-
-| Source | Installed in `CODEX_HOME` |
+| Source | Installed destination |
 | --- | --- |
-| `prompts/main.md` | `prompts/gpt-with-taste/main.md` |
-| `prompts/sub.md` | `prompts/gpt-with-taste/sub.md` |
+| `prompts/main.md` | `CODEX_HOME/prompts/gpt-with-taste/main.md` |
+| `prompts/sub.md` | `CODEX_HOME/prompts/gpt-with-taste/sub.md` |
 
-The top-level `model_instructions_file` in `config.toml` points to the installed `main.md`. Its previous value remains recoverable; the file it referenced is left in place. Model, effort, provider/catalog, authentication, permissions, skills, MCP, concurrency, roles, `AGENTS.md`, existing neutral/Nia files and user Hooks stay unchanged. Prompt-only installation does not require the Codex plugin CLI.
+Both files are **inert** unless explicitly configured. `main.md` is the complete replacement prompt; `sub.md` is a compact read-only role prompt. Installation leaves model, provider, reasoning effort, permissions, authentication, MCP servers, existing roles, skills, AGENTS.md and user Hooks untouched.
+
+## Add developer instructions manually
+
+For native Codex behavior with selected Taste guidance, edit the top-level `developer_instructions` in your own `config.toml`. For example:
+
+```toml
+developer_instructions = """
+Make routine decisions independently within existing authorization.
+Prefer maintainable solutions, useful verification and readable output.
+Remove redundant disclaimers while retaining material uncertainty.
+"""
+```
+
+If `developer_instructions` is already present, merge the new rules into its existing value; TOML must not contain duplicate keys. **The installer never creates or edits this field.** The complete `main.md` is intended for the explicit replacement mode, not for indiscriminate appending to developer instructions.
 
 ## Add optional per-turn steering
 
-We recommend Hooks for multi-turn work in Codex Desktop: they refresh the relevant behavior when you submit a message, start a subagent, or collect its completed result. Codex documents these [Hook events](https://learn.chatgpt.com/docs/hooks). The previously tested `0.162.0-alpha.17.2` `exec resume` entry did not dispatch the plugin events; use the complete main prompt for that entry.
-
-To install the definitions, use a Codex CLI supporting local marketplace/plugin install, list and remove commands:
+Use `--hooks` to install the local Codex marketplace/plugin. This does **not** set `model_instructions_file`.
 
 ```sh
-node scripts/install.mjs --home "/absolute/path/to/.codex" --hooks --dry-run
-node scripts/install.mjs --home "/absolute/path/to/.codex" --hooks
-node scripts/install.mjs --check --home "/absolute/path/to/.codex"
+node scripts/install.mjs --hooks --dry-run
+node scripts/install.mjs --hooks
+node scripts/install.mjs --check
 ```
 
-If `codex` is not on PATH, add `--codex "/absolute/path/to/codex"` to these commands. Its executable is recorded for later checks and recovery; `--codex` can override it if it moves.
+The three event routes are unchanged:
 
-The installer assembles author sources into `CODEX_HOME/gpt-with-taste/marketplace/`, then runs the normal Codex marketplace and plugin CLI to install `gpt-with-taste@gpt-with-taste-local`. Codex owns the registry and installed cache. The configured routes are:
-
-| Event | Intended consumer |
+| Event | Reminder |
 | --- | --- |
-| `UserPromptSubmit` | Main receives `user-steer.md`. Later inputs identified as child-agent turns receive `sub-steer.md`. |
-| `SubagentStart` | The child receives `sub-steer.md`; its first `UserPromptSubmit` is deduplicated using the session, agent and turn IDs. |
-| `PostToolUse` for local `wait_agent` | Main receives `agent-steer.md` when a completed receipt is returned without a timeout. Bare, dotted and flattened `multi_agent_v1` tool names use the same matcher. |
+| `UserPromptSubmit` | `user-steer.md` for main; later identified child turns receive `sub-steer.md` |
+| `SubagentStart` | `sub-steer.md` for a newly started child; paired initial user event is deduplicated |
+| `PostToolUse` | `agent-steer.md` for main only after local `wait_agent` reports completed results without timeout |
 
-The Node command uses the recorded executable and the official `PLUGIN_ROOT` environment value, with a 15-second timeout. On Windows, the installer generates a PowerShell call with `&`, quoted executable and a `Join-Path` argument. The script reads adjacent `prompts/` files and returns developer context; the task and tool result stay intact. Incomplete, timed-out, not-found and child-session results receive no main-result reminder.
+The `PostToolUse` matcher recognizes `wait_agent`, `multi_agent_v1.wait_agent` and `multi_agent_v1wait_agent`. The original task and tool result stay intact. These are additional context reminders; they do not change agent roles or tool permissions. In particular, `sub-steer.md` does not impose read-only restrictions; the chosen role's instructions do.
 
-The initial child-turn record lives under the plugin's `PLUGIN_DATA` directory. Optional audit output uses `GPT_WITH_TASTE_HOOK_AUDIT` and records event IDs, route and outcome, not prompt or result bodies. An audit write failure leaves the context response working; missing event metadata, a missing prompt file or an unusable deduplication record produces a named diagnostic on stderr.
+The plugin is `gpt-with-taste@gpt-with-taste-local`. Codex plugin commands must be available for `--hooks`. If `codex` is not on PATH, use `--codex "/absolute/path/to/codex"`. Open **Settings → Hooks** in Codex Desktop, or run `/hooks`, to inspect and trust the three definitions. An approved definition that changes requires review again. Open a new Codex session.
 
-In Codex Desktop, open **Settings → Hooks** with the same `CODEX_HOME`; in the interactive terminal, use `/hooks`. Review and trust only the `UserPromptSubmit`, `SubagentStart` and `PostToolUse` definitions from `gpt-with-taste@gpt-with-taste-local`, each pointing to this plugin's `hooks/steer.mjs`. Installation enables the plugin but does not approve its commands. Codex records approval for the exact current definition; changed definitions need review again. Keep Node at its recorded path; if it moves, restore and reinstall with the new Node executable.
+The previously tested Codex `0.162.0-alpha.17.2` `exec resume` entry did not dispatch plugin events. `--check` confirms managed files and plugin state, **not** actual event delivery or user trust. Runtime verification must use a Codex entry point that dispatches the intended events.
 
-`--check` verifies managed files, registration/enabled state and recorded cache bytes. It does not verify trust approval or event delivery, and it sends no model request.
+## Optional: replace the model's base instructions
 
-## Use the complete subagent prompt for a selected role
-
-`sub.md` is a complete instruction source. The plugin's `sub-steer.md` is only a reminder, and this installer does not register or replace roles.
-
-Codex's [custom-agent contract](https://developers.openai.com/codex/multi-agent) provides `developer_instructions` for a role's instructions. To use the complete Sub source in a chosen role, include it alongside that role's existing instructions, preserving its leaf, tool and permission boundaries. This role composition is separate from plugin installation and outside installer recovery.
-
-Do not assume a role-level `model_instructions_file` replaces inherited Main: on the tested `exec resume` workflow, the selected role's developer instructions were delivered, but its Sub instruction-file setting was not consumed as base instructions. Check the chosen child's effective context before relying on complete Sub coverage.
-
-## Update or resolve a conflict
-
-Update this clone, then rerun the same install command. Include `--hooks` to refresh the assembled plugin and Codex cache. A later prompt-only install leaves the optional layer alone and does not invoke Codex. Repeated installs retain the first installation's recovery baseline.
-
-Migration from an older receipt-managed Hook installation removes only its recorded event-and-exact-command groups before enabling the plugin. Their original values remain recoverable, and other Hooks remain in place. An old receipt can also be restored directly without new plugin sources or the plugin CLI.
-
-An existing same-name marketplace/plugin without this receipt's ownership is not adopted. Recover it with its original installer, or explicitly remove it before proceeding. For an unknown differing managed file, review it before using `--replace-managed`; its original bytes are preserved. That flag does not override post-install drift.
-
-Use a separate clone for a different Codex home.
-
-## Undo the installation
-
-From the **same clone** and **same Codex home**, preview and restore:
+Full replacement is available only when explicitly requested:
 
 ```sh
-node scripts/install.mjs --restore --home "/absolute/path/to/.codex" --dry-run
-node scripts/install.mjs --restore --home "/absolute/path/to/.codex"
+node scripts/install.mjs --override-base --dry-run
+node scripts/install.mjs --override-base
+node scripts/install.mjs --check
 ```
 
-Plugin recovery needs a working Codex CLI, including for the preview. If its recorded executable moved, add `--codex "/absolute/path/to/codex"` to both commands. Recovery restores the original managed instruction setting and file bytes, and removes this installation's optional plugin and marketplace. It preserves unrelated configuration and Hooks.
+You can combine `--override-base --hooks`. The override sets top-level `model_instructions_file` to the installed main prompt. It replaces Codex's model-specific built-in instructions and may affect native agent behavior.
 
-For interrupted operations, drift or lost receipts, follow [the recovery guide](recovery.md).
+A receipt from an older GPT with Taste installation may still manage `model_instructions_file`. To move an **existing override installation** to the native default, run `--restore` first, then reinstall without `--override-base`. The installer deliberately refuses to silently switch an active override install into native mode. To keep the existing override, supply `--override-base` on subsequent install/update calls.
+
+## Use the compact subagent role prompt
+
+`prompts/sub.md` contains the complete read-only research role instructions. It is intentionally short (379 Unicode characters against the 329-character reference; below the 2× limit). The installer copies this file but does not register new roles or replace existing ones.
+
+For a selected custom agent, include the prompt through the supported role `developer_instructions` configuration, alongside any existing role contract. The separate Hook reminder carries only task and evidence guidance. It does not establish the role's read-only permissions.
+
+The tested `exec resume` workflow inherited the main base instructions even when a role-level `model_instructions_file` was set. Do not assume that role-level base replacement is effective; verify the child agent's actual instruction context. See the [Codex custom agent documentation](https://developers.openai.com/codex/multi-agent).
+
+## Update, conflicts and restore
+
+Update this clone and rerun your chosen command. Include `--hooks` when you want to update installed Hook sources; plain installation does not inspect the plugin. Repeated installs keep the first recovery baseline until restored.
+
+The installer records state in `.gpt-with-taste/install-receipt.json` inside the clone. For existing managed destination files with unknown different content, review the conflict before using `--replace-managed`; this flag preserves the original bytes for recovery and does not override post-install drift.
+
+Preview and restore from the **same clone** and **same Codex home**:
+
+```sh
+node scripts/install.mjs --restore --dry-run
+node scripts/install.mjs --restore
+```
+
+A native or Hook-only installation restores only files and plugin state that it managed; it **never restores or changes user-edited developer instructions or config.toml**. An installation made with `--override-base` restores its prior `model_instructions_file` value. Plugin restoration requires the recorded Codex CLI (or an explicit `--codex`).
+
+For interrupted operations, local conflicts and earlier receipt formats, see [recovery](recovery.md).

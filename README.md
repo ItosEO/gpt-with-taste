@@ -27,21 +27,31 @@
 
 ## Install
 
-With Node.js 22 or newer installed:
+Requires Node.js **22+**. The default install copies the prompt sources into your active `CODEX_HOME` (otherwise `~/.codex`). It **does not change** `config.toml`, `model_instructions_file`, or `developer_instructions`.
 
 ```sh
-git clone https://github.com/NB-Corp/gpt-with-taste.git
+git clone https://github.com/ItosEO/gpt-with-taste.git
 cd gpt-with-taste
-node scripts/install.mjs --hooks
+node scripts/install.mjs
 ```
 
-We recommend Hooks for multi-turn work in Codex Desktop: reminders arrive with your message, with the child's input, and when main collects a completed result. For a prompt-only installation, run `node scripts/install.mjs` instead. Neither route needs npm packages.
+To install the three optional event reminders, use `node scripts/install.mjs --hooks`. This also **preserves the native Codex model instructions**. Review and trust the three definitions under Codex Desktop **Settings → Hooks** (or `/hooks`), and start a new session.
 
-Both routes install into the active `CODEX_HOME` (otherwise `~/.codex`), write the two managed prompt files, and point `model_instructions_file` at the main one. Your model, provider, effort, authentication, permissions, MCP servers, roles, and `AGENTS.md` remain unchanged. To target another home, add `--home` with a quoted absolute path, for example `--home "C:/Users/you/.codex"`.
+Add your own selected Taste guidance manually to the **existing** top-level `developer_instructions` value in `~/.codex/config.toml` (do not create a duplicate TOML key). For example:
 
-With `--hooks`, review and trust the three installed definitions in Codex Desktop under **Settings → Hooks**, or in the interactive terminal with `/hooks`. Enable only the events you want. Open a **new Codex session** after installation.
+```toml
+developer_instructions = """
+Make ordinary decisions independently within the user's authorization.
+Prefer maintainable code, meaningful checks and clear, direct explanations.
+Preserve material uncertainty, evidence and important limitations.
+"""
+```
 
-Prefer to delegate? Give your coding assistant this repository and [docs/install-for-ai.md](docs/install-for-ai.md). To recover the managed state, use [docs/recovery.md](docs/recovery.md). The complete installation contract is in [docs/install.md](docs/install.md).
+If you explicitly want the original full replacement behavior, run `node scripts/install.mjs --override-base` (optionally with `--hooks`). This sets `model_instructions_file` to the bundled main prompt. Upgrading an **existing** full-replacement installation to native mode requires `--restore` first, followed by a fresh install without `--override-base`.
+
+Use `--dry-run` to preview, `--check` to validate installed files, and `--restore` to undo the installer-managed changes. Keep the clone and its private `.gpt-with-taste/install-receipt.json` for restoration. Existing user configuration, permissions, MCP servers, roles, and `AGENTS.md` are preserved.
+
+Full details: [installation](docs/install.md), [recovery](docs/recovery.md) and [source map](docs/prompt-map.md).
 
 ---
 
@@ -79,10 +89,10 @@ Inspect full inputs, generated documents, and run conditions: [Task & run condit
 
 ## How it works
 
-1. **The system prompt sets standing priorities.** It covers judgment, execution, collaboration, and craft. The instructions are English; replies follow your latest language.
+1. **The bundled main prompt is opt-in.** Native Codex instructions stay active by default; you may add selected developer instructions manually or explicitly use `--override-base` for full replacement.
 2. **Steer refreshes the relevant priorities near each input.** The local plugin sends user reminders to main, scoped reminders to children, and result-consumption reminders to main after a completed wait. A child's paired startup events produce one reminder. [Installation details](docs/install.md#add-optional-per-turn-steering) cover the events and client entry points.
 
-`prompts/sub.md` is included for roles you choose. Main and sub prompts each contain the complete behavior; `--hooks` installs all three reminder routes.
+`prompts/sub.md` is a compact, read-only role source for explicitly configured subagents. Hooks give task-focused reminders and do not set role permissions; `--hooks` installs all three routes without changing model instructions.
 
 ---
 

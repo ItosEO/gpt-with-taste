@@ -28,21 +28,31 @@
 
 ## 安装
 
-先安装 Node.js 22 或更高版本，然后运行：
+需要 Node.js **22 或更高版本**。默认只把提示词文件复制到当前 `CODEX_HOME`（未设置时为 `~/.codex`）。**不会修改** `config.toml`、`model_instructions_file` 或 `developer_instructions`。
 
 ```sh
-git clone https://github.com/NB-Corp/gpt-with-taste.git
+git clone https://github.com/ItosEO/gpt-with-taste.git
 cd gpt-with-taste
-node scripts/install.mjs --hooks
+node scripts/install.mjs
 ```
 
-推荐在 Codex Desktop 的多轮工作中安装 Hooks：用户发消息、子 Agent 收到输入、主控取回完成结果时，各自收到对应提醒。只安装提示词则运行 `node scripts/install.mjs`。两条路线都不需要 npm 包。
+需要事件提醒时，执行 `node scripts/install.mjs --hooks`。该模式也**保留 Codex 原生基础指令**。在 Codex Desktop 的 **设置 → 钩子**（或终端 `/hooks`）中审核并信任三个 Hook，然后新开一个会话。
 
-两条路线都安装到当前生效的 `CODEX_HOME`（未设置时为 `~/.codex`），写入两个受管提示词文件，并把 `model_instructions_file` 指向 main。你的模型、provider、effort、认证、权限、MCP、角色与 `AGENTS.md` 保持不变。要指定其他位置，追加带引号的绝对路径，例如 `--home "C:/Users/you/.codex"`。
+需要 Taste 的长期行为规则时，由用户手动向 `~/.codex/config.toml` 顶层的 `developer_instructions` 添加选定规则；如该键已经存在，应编辑原值，不要写第二个同名键。例如：
 
-使用 `--hooks` 时，在 Codex Desktop 的**设置 → 钩子**中审查并信任这三个定义，也可以在交互终端输入 `/hooks`。只开启你需要的事件。安装后请**新开一个 Codex 会话**。
+```toml
+developer_instructions = """
+Make ordinary decisions independently within the user's authorization.
+Prefer maintainable code, meaningful checks and clear, direct explanations.
+Preserve material uncertainty, evidence and important limitations.
+"""
+```
 
-想交给编程助手代办，可把本仓库与 [docs/install-for-ai.md](docs/install-for-ai.md) 一起交给它。要恢复受管状态，使用 [docs/recovery.md](docs/recovery.md)；完整安装契约见 [docs/install.md](docs/install.md)。
+如确实需要**完整替换**原生基础指令，显式执行 `node scripts/install.mjs --override-base`（可以同时使用 `--hooks`）。已有旧版覆盖安装若要改用原生模式，应先执行 `--restore`，然后重新安装且不带 `--override-base`。
+
+可用 `--dry-run` 预览、`--check` 检查、`--restore` 恢复。保留克隆目录及其私有的 `.gpt-with-taste/install-receipt.json` 恢复记录。用户已有的权限、MCP、角色和 `AGENTS.md` 不受影响。
+
+详细说明：[安装](docs/install.md)、[恢复](docs/recovery.md)、[提示词分层](docs/prompt-map.md)。
 
 ---
 
@@ -80,10 +90,10 @@ GPT with Taste 把判断力用在结果上：作出合理选择、保留有据�
 
 ## 工作机制
 
-1. **系统提示词设定长期优先级。** 它覆盖判断、执行、协作与审美；提示词本体为英文，回复跟随你最新使用的语言。
+1. **完整主提示词改为可选。** 默认保留 Codex 原生指令；用户可手动追加 Developer Instructions，或显式使用 `--override-base` 完整替换。
 2. **Steer 在输入附近重新强调对应行为。** 本地插件把用户提醒交给主控，把范围内执行提醒交给子 Agent，并在主控取回完成回执后送入成果消费提醒。子 Agent 配对的启动事件只注入一份提醒。具体事件和客户端入口见[安装说明](docs/install.md#add-optional-per-turn-steering)。
 
-`prompts/sub.md` 留给你指定的角色使用。main 与 sub 提示词各自包含完整行为；`--hooks` 安装这三条提醒路线。
+`prompts/sub.md` 是供指定角色使用的精简只读规则。Hooks 只提供任务提醒，不决定子代理权限；`--hooks` 安装三条提醒路线，但不修改模型基础指令。
 
 ---
 

@@ -32,22 +32,68 @@ const original='\uFEFF# local config\r\nmodel = "existing-gpt"\r\nmodel_reasonin
 test('prompt-only preserves all other bytes and hooks; no Codex prerequisite; original baseline survives updates',async t=>{
   const {root,home,call,calls}=await fixture(t);await put(path.join(home,'config.toml'),original);await put(path.join(home,'hooks.json'),'INVALID USER HOOK FILE');
   await call('--dry-run');assert.equal(await exists(receipt(root)),false);await call();
-  assert.equal(await fs.readFile(path.join(home,'config.toml'),'utf8'),setInstructions(original,path.join(home,'prompts/gpt-with-taste/main.md')));
+  assert.equal(await fs.readFile(path.join(home,'config.toml'),'utf8'),original);
   const baseline=await fs.readFile(receipt(root),'utf8');assert.equal(baseline.includes('fixture-secret'),false);await call();assert.equal(await fs.readFile(receipt(root),'utf8'),baseline);
   await put(path.join(root,'prompts/main.md'),'UPDATED');await call();await fs.appendFile(path.join(home,'config.toml'),'[analytics]\r\nenabled = false\r\n');await call('--check');await call('--restore');
   assert.equal(await fs.readFile(path.join(home,'config.toml'),'utf8'),original+'[analytics]\r\nenabled = false\r\n');assert.equal(await fs.readFile(path.join(home,'hooks.json'),'utf8'),'INVALID USER HOOK FILE');assert.deepEqual(calls,[]);
 });
+
+test('native install and hooks never create config; manually added developer instructions survive upgrades and restore',async t=>{
+  const f=await fixture(t);await f.call();assert.equal(await exists(path.join(f.home,'config.toml')),false);
+  const manual='model = "gpt-6"\ndeveloper_instructions = """User-managed taste rules"""\n';
+  await put(path.join(f.home,'config.toml'),manual);
+  await f.call('--hooks');await f.call('--check');await f.call('--hooks');await f.call('--restore');
+  assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),manual);
+});
+
+test('base override requires explicit flag and restores the prior config',async t=>{
+  const f=await fixture(t);await put(path.join(f.home,'config.toml'),original);
+  await f.call('--override-base');const expected=setInstructions(original,path.join(f.home,'prompts/gpt-with-taste/main.md'));
+  assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),expected);
+  await assert.rejects(f.call('--hooks'),/existing installation overrides Codex base instructions/);
+  await f.call('--override-base','--hooks');await f.call('--check');await f.call('--restore');
+  assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),original);
+});
+
+test('native installation can opt into overriding later while retaining manual baseline',async t=>{
+  const f=await fixture(t);await f.call();
+  const manual='model = "gpt-6"\ndeveloper_instructions = "manual"\n';
+  await put(path.join(f.home,'config.toml'),manual);
+  await f.call('--override-base');
+  assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),setInstructions(manual,path.join(f.home,'prompts/gpt-with-taste/main.md')));
+  await f.call('--restore');
+  assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),manual);
+});
+
+
+test('compact subagent instructions stay below twice the reference length; hook does not repeat read-only rules',async()=>{
+  const sub=await fs.readFile(path.join(repo,'prompts/sub.md'),'utf8');
+  const steer=await fs.readFile(path.join(repo,'prompts/sub-steer.md'),'utf8');
+  assert.ok(Array.from(sub.trimEnd()).length<=658,'sub.md exceeds twice the 329-character user reference');
+  assert.match(sub,/只读探索/);
+  assert.match(sub,/不得修改/);
+  assert.match(sub,/不得派生/);
+  assert.doesNotMatch(steer,/只读|不得修改|不得派生|不负责实现/);
+  assert.match(steer,/证据/);
+});
+
+test('override flag is install-only',async t=>{
+  const f=await fixture(t);
+  await assert.rejects(f.call('--override-base','--check'),/install options/);
+  await assert.rejects(f.call('--override-base','--restore'),/install options/);
+});
+
 test('unknown managed bytes require explicit replacement and restore exactly',async t=>{
   const {home,root,call}=await fixture(t);const file=path.join(home,'prompts/gpt-with-taste/main.md'),old=Buffer.from([0,1,255,13,10]);await put(file,old);
   await assert.rejects(call(),/Unknown managed target/);assert.equal(await exists(receipt(root)),false);await call('--replace-managed');await call('--restore');assert.deepEqual(await fs.readFile(file),old);assert.equal(await exists(path.join(home,'config.toml')),false);
 });
 test('managed prompt/config drift stops recovery before changing state',async t=>{
-  const {home,root,call}=await fixture(t);await call();const file=path.join(home,'prompts/gpt-with-taste/main.md'),installed=await fs.readFile(file);await put(file,'USER EDIT');const before=await fs.readFile(receipt(root));await assert.rejects(call('--replace-managed'),/drifted/);await assert.rejects(call('--restore'),/drifted/);assert.deepEqual(await fs.readFile(receipt(root)),before);
+  const {home,root,call}=await fixture(t);await call('--override-base');const file=path.join(home,'prompts/gpt-with-taste/main.md'),installed=await fs.readFile(file);await put(file,'USER EDIT');const before=await fs.readFile(receipt(root));await assert.rejects(call('--override-base','--replace-managed'),/drifted/);await assert.rejects(call('--restore'),/drifted/);assert.deepEqual(await fs.readFile(receipt(root)),before);
   await put(file,installed);await put(path.join(home,'config.toml'),'model_instructions_file = "other.md"\n');await assert.rejects(call('--restore'),/config key has drifted/);
 });
 test('plugin bundle installs three routes, leaves all user hooks untouched, updates and restores',async t=>{
   const {root,home,call,state,calls}=await fixture(t);await put(path.join(home,'hooks.json'),'USER HOOK JSON IS NOT OURS');await put(path.join(home,'config.toml'),original);
-  await call();await call('--hooks','--dry-run');assert.equal(state.plugin,null);await call('--hooks');assert.equal(state.plugin.enabled,true);
+  await call();await call('--hooks','--dry-run');assert.equal(state.plugin,null);await call('--hooks');assert.equal(state.plugin.enabled,true);assert.equal(await fs.readFile(path.join(home,'config.toml'),'utf8'),original);
   const data=JSON.parse(await fs.readFile(receipt(root)));const hooks=JSON.parse(await fs.readFile(path.join(data.plugin.cacheRoot,'hooks/hooks.json')));
   assert.deepEqual(Object.keys(hooks.hooks),['UserPromptSubmit','SubagentStart','PostToolUse']);assert.equal(hooks.hooks.PostToolUse[0].matcher,'^(?:wait_agent|multi_agent_v1\\.wait_agent|multi_agent_v1wait_agent)$');assert.equal(hooks.hooks.UserPromptSubmit[0].hooks[0].timeout,15);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,process.platform==='win32'?/\$env:PLUGIN_ROOT/:/\$\{PLUGIN_ROOT\}/);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,/--route user$/);assert.match(hooks.hooks.SubagentStart[0].hooks[0].command,/--route sub$/);assert.match(hooks.hooks.PostToolUse[0].hooks[0].command,/--route agent$/);
   const baseline=await fs.readFile(receipt(root));await call('--hooks');assert.deepEqual(await fs.readFile(receipt(root)),baseline);assert.equal(calls.filter(name=>name==='install').length,1);
@@ -59,7 +105,7 @@ test('plugin collisions and cache drift fail closed; prompt-only updates do not 
   calls.length=0;await put(path.join(root,'prompts/main.md'),'NEW MAIN');await call();assert.deepEqual(calls,[]);await assert.rejects(call('--check'),/file has drifted/);
 });
 async function legacy(f,single=true,matchingBaseline=false){
-  const {root,home,call}=f;await put(path.join(home,'config.toml'),original);await call();const data=JSON.parse(await fs.readFile(receipt(root)));const cmd='node "owned-legacy-steer.mjs"',peer={hooks:[{type:'command',command:'other-sol-recipe-steer.mjs'}]};
+  const {root,home,call}=f;await put(path.join(home,'config.toml'),original);await call('--override-base');const data=JSON.parse(await fs.readFile(receipt(root)));delete data.config.managed;const cmd='node "owned-legacy-steer.mjs"',peer={hooks:[{type:'command',command:'other-sol-recipe-steer.mjs'}]};
   const value={hooks:{UserPromptSubmit:[peer],Stop:[peer]}};if(matchingBaseline)value.hooks.UserPromptSubmit.push(hookGroup(cmd));
   const groups=(single?ROUTES.slice(0,1):ROUTES).map(route=>installHook(value,cmd,route));
   for(const name of ['hooks/steer.mjs','prompts/user-steer.md']){const bytes=await fs.readFile(path.join(root,name)),target=`gpt-with-taste/${name}`;await put(path.join(home,target),bytes);data.files.push({path:target,before:null,after:bytes.toString('base64')});}
@@ -67,10 +113,10 @@ async function legacy(f,single=true,matchingBaseline=false){
   await put(path.join(home,'hooks.json'),JSON.stringify(value));await put(receipt(root),JSON.stringify(data));return {data,peer,cmd};
 }
 for(const single of [true,false])test(`legacy ${single?'single':'three'} route migration disables exact owned groups and restores original baseline`,async t=>{
-  const f=await fixture(t);const {data,peer}=await legacy(f,single);await f.call('--check');await f.call('--hooks');const upgraded=JSON.parse(await fs.readFile(receipt(f.root)));assert.equal(upgraded.hook,undefined);assert.ok(upgraded.hookGroups.every(group=>group.after===null));assert.equal(upgraded.config.before,data.config.before);let hooks=JSON.parse(await fs.readFile(path.join(f.home,'hooks.json')));assert.deepEqual(hooks.hooks.UserPromptSubmit,[peer]);assert.deepEqual(hooks.hooks.Stop,[peer]);await f.call('--hooks');await f.call('--restore');hooks=JSON.parse(await fs.readFile(path.join(f.home,'hooks.json')));assert.deepEqual(hooks.hooks.UserPromptSubmit,[peer]);assert.deepEqual(hooks.hooks.Stop,[peer]);assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),original);
+  const f=await fixture(t);const {data,peer}=await legacy(f,single);await f.call('--check');await f.call('--hooks','--override-base');const upgraded=JSON.parse(await fs.readFile(receipt(f.root)));assert.equal(upgraded.hook,undefined);assert.ok(upgraded.hookGroups.every(group=>group.after===null));assert.equal(upgraded.config.before,data.config.before);let hooks=JSON.parse(await fs.readFile(path.join(f.home,'hooks.json')));assert.deepEqual(hooks.hooks.UserPromptSubmit,[peer]);assert.deepEqual(hooks.hooks.Stop,[peer]);await f.call('--hooks','--override-base');await f.call('--restore');hooks=JSON.parse(await fs.readFile(path.join(f.home,'hooks.json')));assert.deepEqual(hooks.hooks.UserPromptSubmit,[peer]);assert.deepEqual(hooks.hooks.Stop,[peer]);assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),original);
 });
 test('migration restores a matching pre-existing exact-command baseline, not a duplicate during plugin use',async t=>{
-  const f=await fixture(t);const {cmd,peer}=await legacy(f,true,true);await f.call('--hooks');assert.deepEqual(JSON.parse(await fs.readFile(path.join(f.home,'hooks.json'))).hooks.UserPromptSubmit,[peer]);await f.call('--restore');assert.deepEqual(JSON.parse(await fs.readFile(path.join(f.home,'hooks.json'))).hooks.UserPromptSubmit,[peer,hookGroup(cmd)]);
+  const f=await fixture(t);const {cmd,peer}=await legacy(f,true,true);await f.call('--hooks','--override-base');assert.deepEqual(JSON.parse(await fs.readFile(path.join(f.home,'hooks.json'))).hooks.UserPromptSubmit,[peer]);await f.call('--restore');assert.deepEqual(JSON.parse(await fs.readFile(path.join(f.home,'hooks.json'))).hooks.UserPromptSubmit,[peer,hookGroup(cmd)]);
 });
 test('legacy receipt restores directly without new plugin sources or Codex',async t=>{
   const f=await fixture(t);await legacy(f);await fs.rm(path.join(f.root,'plugin'),{recursive:true});f.calls.length=0;await f.call('--restore');assert.deepEqual(f.calls,[]);
