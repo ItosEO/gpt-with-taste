@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>clsx onboarding — GPT with Taste</title>
-<meta name="description" content="A real documentation task run under two instruction sets: side-by-side excerpts, run conditions, and archived material.">
+<title>From installation logs to a first task — GPT with Taste</title>
+<meta name="description" content="Same request, same installation notes, two instruction sets: representative excerpts side by side.">
 <style>
   :root {
     --bg: #FBF9F5; --ink: #1C1E21; --muted: #5A606D; --accent: #C84824;
@@ -26,8 +26,6 @@
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
   code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .86em; background: var(--code-bg); border: 1px solid var(--border); padding: 1px 5px; border-radius: 5px; }
-  pre { white-space: pre-wrap; overflow-wrap: anywhere; }
-  pre code { background: none; border: 0; padding: 0; }
   header.top { display: flex; align-items: center; gap: 14px; padding-bottom: 22px; border-bottom: 3px solid var(--ink); }
   .wordmark { font-family: Georgia, "Times New Roman", serif; font-size: 26px; }
   .wordmark em { color: var(--accent); }
@@ -37,32 +35,20 @@
   .kicker { font-size: 11px; font-weight: 700; letter-spacing: 2.4px; color: var(--muted); margin: 34px 0 10px; }
   h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: 40px; margin: 0 0 18px; }
   h2 { font-size: 15px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; margin: 0 0 14px; }
-  blockquote.request { margin: 0 0 18px; padding: 4px 0 4px 18px; border-left: 3px solid var(--accent); font-family: Georgia, "Times New Roman", serif; font-style: italic; font-size: 18px; }
-  .method { color: var(--muted); font-size: 14px; max-width: 900px; }
+  blockquote.request { margin: 0 0 18px; padding: 4px 0 4px 18px; border-left: 3px solid var(--accent); font-family: Georgia, "Times New Roman", "Songti SC", "SimSun", serif; font-style: italic; font-size: 18px; }
   section { margin-top: 48px; }
   .cols { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--border-strong); }
   .col { padding: 18px 28px 20px 0; min-width: 0; }
   .col + .col { border-left: 1px solid var(--border); padding-left: 28px; padding-right: 0; }
   .lane { display: block; font-size: 11px; font-weight: 700; letter-spacing: 2.2px; margin-bottom: 12px; }
   .lane.b { color: var(--caution); } .lane.t { color: var(--positive); }
-  .hl-c { background: var(--hl-c-bg); color: var(--caution); font-weight: 600; border-radius: 3px; padding: 0 2px; }
-  .hl-t { background: var(--hl-t-bg); color: var(--positive); font-weight: 600; border-radius: 3px; padding: 0 2px; }
-  pre.code, details pre { margin: 6px 0 0; background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; font-size: 13px; line-height: 1.55; }
+  .hl-c { background: var(--hl-c-bg); color: var(--caution); font-weight: 700; border-radius: 3px; padding: 0 2px; }
+  .hl-t { background: var(--hl-t-bg); color: var(--positive); font-weight: 700; border-radius: 3px; padding: 0 2px; }
+  .meta { color: var(--muted); font-size: 13.5px; margin: 10px 0 0; }
+  .doc-head { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; color: var(--muted); margin: 0 0 10px; }
   .note { margin: 14px 0 0; padding-top: 12px; border-top: 1px dashed var(--border-strong); color: var(--muted); font-size: 14px; }
-  .facts { display: grid; grid-template-columns: 180px 1fr; border-top: 1px solid var(--border-strong); }
-  .facts dt, .facts dd { margin: 0; padding: 10px 0; border-bottom: 1px solid var(--border); }
-  .facts dt { color: var(--muted); font-size: 13px; font-weight: 700; }
-  .facts dd { padding-left: 20px; }
-  details { border-top: 1px solid var(--border-strong); }
-  details:last-of-type { border-bottom: 1px solid var(--border-strong); }
-  summary { cursor: pointer; padding: 14px 4px; font-weight: 600; list-style: none; }
-  summary::-webkit-details-marker { display: none; }
-  summary::before { content: "+"; color: var(--accent); font-weight: 700; display: inline-block; width: 18px; }
-  details[open] summary::before { content: "–"; }
-  details .body { padding: 0 4px 18px 22px; }
-  details pre { max-height: 520px; overflow-y: auto; font-size: 12.5px; }
   footer { margin-top: 64px; padding-top: 18px; border-top: 3px solid var(--ink); display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13.5px; color: var(--muted); }
-  @media (max-width: 760px) { .wrap { padding: 26px 18px 48px; } h1 { font-size: 30px; } .cols { grid-template-columns: 1fr; } .col { padding: 16px 0; } .col + .col { border-left: 0; border-top: 1px solid var(--border); padding-left: 0; } nav.topnav { display: none; } .facts { grid-template-columns: 1fr; } .facts dd { padding-left: 0; } }
+  @media (max-width: 760px) { .wrap { padding: 26px 18px 48px; } h1 { font-size: 30px; } .cols { grid-template-columns: 1fr; } .col { padding: 16px 0; } .col + .col { border-left: 0; border-top: 1px solid var(--border); padding-left: 0; } nav.topnav { display: none; } }
 </style>
 </head>
 <body>
@@ -75,7 +61,7 @@
       <circle cx="60" cy="60" r="9" fill="var(--accent)"/>
     </svg>
     <span class="wordmark">GPT with <em>Taste</em></span>
-    <span class="crumb">Case evidence</span>
+    <span class="crumb">Case gallery</span>
     <nav class="topnav">
       <a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/README.md">README</a>
       <a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases.md">Case index</a>
@@ -84,136 +70,55 @@
   </header>
 
   <main>
-    <p class="kicker">CASE · DOCUMENTATION TASK</p>
-    <h1>clsx onboarding</h1>
-    <blockquote class="request">给刚接触 clsx 的前端同事写一份中文上手文档，放 docs/getting-started.zh-CN.md，能照着安装用起来。</blockquote>
-    <p class="method">Two native Codex runs received this same request, the same seven clsx 2.1.1 project files, the same local instructions, and the same skills. The excerpts below come from the two archived guides; highlights mark the teaching choices.</p>
+    <p class="kicker">CASE · ONBOARDING DOCUMENT</p>
+    <h1>From installation logs to a first task</h1>
+    <blockquote class="request">根据 notes.md，给刚装好的同事写一份中文上手说明，放 START_HERE.md。</blockquote>
+    <p class="meta">GPT-6.1 Sol · high · native Codex 0.162.0-alpha.17.2 · 2026-10-13 · <a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases/codex-first-use/source-map.json">source-map.json ↗</a></p>
 
     <section>
-      <h2>Run conditions</h2>
-      <dl class="facts">
-        <dt>Model / effort</dt><dd>GPT-6.1 Sol · high</dd>
-        <dt>Client</dt><dd>Native Codex 0.162.0-alpha.17.2</dd>
-        <dt>Input and sources</dt><dd>Same request, seven archived project files, same local AGENTS instructions and skills</dd>
-        <dt>Default side</dt><dd>Codex model-catalog Sol instructions; legacy <code>{{ personality }}</code> placeholder removed; current user instruction excluded</dd>
-        <dt>Taste side</dt><dd>Complete frozen <code>prompts/main.md</code> only (Main-only)</dd>
-        <dt>Hooks</dt><dd>Zero Steer messages in either run; the Taste side had Hooks configured, none fired</dd>
-      </dl>
-    </section>
-
-    <section>
-      <h2>What the two guides show</h2>
+      <h2>Where each guide starts</h2>
       <div class="cols">
         <article class="col">
           <span class="lane b">BUILTIN DEFAULT</span>
-          <p><span class="hl-c">先确认本机有 Node.js 和 npm</span>，然后在前端项目的根目录（有 <code>package.json</code> 的目录）运行：</p>
-          <p>It leads with prerequisites and a separate verification command.</p>
+          <p class="doc-head"># Codex 中文上手说明</p>
+          <p><span class="hl-c">这份说明依据安装记录 <code>notes.md</code> 整理，未重新检查本机配置。</span>先正常打开一个新的 Codex 会话，就可以开始使用已安装的 Main 提示词；逐轮提醒是可选项，不影响这一步。</p>
+          <p>安装记录中的一轮真实 GPT-6.1 Sol/high 请求已确认加载与作者源一致的完整英文 Main 正文。<span class="hl-c">这是已完成的验证，不表示需要切换到该模型才能使用。</span></p>
+          <p class="note">The opening spends its first lines on provenance and verification status.</p>
         </article>
         <article class="col">
           <span class="lane t">GPT WITH TASTE</span>
-          <p><span class="hl-t">把 <code>isActive</code> 改成 <code>false</code>，结果就只剩 <code>'button'</code>。</span></p>
-          <p>It asks the reader to flip one state in the example and watch the output change.</p>
+          <p class="doc-head"># Codex 上手：直接开新会话</p>
+          <p>GPT with Taste 已安装。<span class="hl-t">正常打开一个新的 Codex 会话，就会使用 Main 提示词</span>；不用选择 controller、添加 profile 参数，也不用定制启动器。</p>
+          <p class="doc-head">## 先完成你的第一个任务</p>
+          <p>用中文说明你要做什么、涉及哪些文件，以及怎样算完成。例如：<span class="hl-t">帮我梳理这个项目的启动步骤，先只读文件，不修改任何内容。</span></p>
+          <p class="note">The opening hands the colleague a first task to run.</p>
         </article>
       </div>
     </section>
 
     <section>
-      <h2>Archived material</h2>
-      <details>
-        <summary>Task, run conditions, and source map <span style="color:var(--muted);font-weight:400">docs/cases/clsx-onboarding/input.md</span></summary>
-        <div class="body">
-          <pre># Task and materials
+      <h2>The delivery reply</h2>
+      <div class="cols">
+        <article class="col">
+          <span class="lane b">BUILTIN DEFAULT</span>
+          <p>已根据 <code>notes.md</code> 写好 START_HERE.md，包含直接使用、可选提醒启用、未验证事项及恢复步骤。<span class="hl-c">仅新增该文件，未检查或修改实际配置。</span></p>
+        </article>
+        <article class="col">
+          <span class="lane t">GPT WITH TASTE</span>
+          <p>已根据 <code>notes.md</code> 写好 START_HERE.md，<span class="hl-t">包含新会话用法、Main/Sub 当前状态、可选提醒启用步骤及恢复命令。</span></p>
+        </article>
+      </div>
+      <p class="note">Both replies name what the document covers. One also reports what it did not do.</p>
+    </section>
 
-Model: GPT-6.1 Sol, reasoning effort: high. Both runs used native Codex 0.162.0-alpha.17.2 with multi-agent disabled, and received the same seven source files, the same local AGENTS instructions, and the same skills. The built-in side used the Sol instructions from the Codex model catalog, with the legacy literal {{ personality }} placeholder removed and the user's custom instruction file excluded. The Taste side ran a frozen copy of the complete prompts/main.md only — Hooks were configured but did not trigger in this run (zero Steer messages).
-
-## User request
-
-&gt; 给刚接触 clsx 的前端同事写一份中文上手文档，放 docs/getting-started.zh-CN.md，能照着安装用起来。
-
-## Starting materials
-
-Seven complete files from lukeed/clsx 2.1.1 (commit 925494cf), archived byte-exact in source/: readme.md, package.json, license, src/index.js, src/lite.js, clsx.d.ts, clsx.d.mts. The working directory did not contain dist/, bin, or test/; neither document presented that state to the reader.</pre>
-          <p><a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases/clsx-onboarding/input.md">Open the source file on GitHub ↗</a></p>
-        </div>
-      </details>
-      <details>
-        <summary>Builtin guide <span style="color:var(--muted);font-weight:400">docs/cases/clsx-onboarding/builtin.md</span></summary>
-        <div class="body">
-          <p><a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases/clsx-onboarding/builtin.md">Open the complete guide on GitHub ↗</a></p>
-          <pre># clsx 中文上手指南
-
-`clsx` 用来按条件拼接 CSS 类名，返回一个用空格分隔的字符串。比如按钮始终带有 `button`，选中时再加上 `button--active`。它不生成 CSS，也不依赖 React；在 React 中，把返回值交给 `className` 即可。
-
-本文按本仓库的 `clsx 2.1.1` 编写，适合已经有前端项目、刚开始使用 clsx 的同事。
-
-## 1. 安装并验证
-
-先确认本机有 Node.js 和 npm，然后在前端项目的根目录（有 `package.json` 的目录）运行：
-
-```sh
-npm install --save clsx
-```
-
-这是应用运行时会用到的依赖，不要加 `--save-dev`。
-
-安装后，在同一目录运行：
-
-```sh
-node -e "const clsx = require('clsx'); console.log(clsx('button', { 'button--active': true }));"
-```
-
-应输出：
-
-```text
-button button--active
-```
-
-</pre>
-        </div>
-      </details>
-      <details>
-        <summary>Taste guide <span style="color:var(--muted);font-weight:400">docs/cases/clsx-onboarding/taste.md</span></summary>
-        <div class="body">
-          <p><a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases/clsx-onboarding/taste.md">Open the complete guide on GitHub ↗</a></p>
-          <pre># clsx 中文上手
-
-当一个元素的类名要随状态变化时，用 `clsx` 把固定类名和条件类名拼成一个字符串，再交给 `className`。它只负责拼类名，样式仍由你项目中的 CSS 提供。
-
-## 1. 安装并跑通第一个例子
-
-在已有前端项目的根目录（包含 `package.json` 的目录）运行：
-
-```sh
-npm install --save clsx
-```
-
-在项目的 JavaScript 或 TypeScript 文件中导入：
-
-```js
-import clsx from 'clsx';
-
-const isActive = true;
-const isDisabled = false;
-
-const className = clsx('button', {
-  'button--active': isActive,
-  'button--disabled': isDisabled,
-});
-
-console.log(className);
-// 输出：'button button--active'
-```
-
-把 `isActive` 改成 `false`，结果就只剩 `'button'`。在项目现有的开发环境中运行这段代码，查看控制台输出即可确认。
-
-</pre>
-        </div>
-      </details>
+    <section>
+      <h2>Complete originals</h2>
+      <p>Full guides: <a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases/codex-first-use/builtin.md">builtin.md ↗</a> · <a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases/codex-first-use/taste.md">taste.md ↗</a> — with the shared installation notes, both assistant message archives, and prompt snapshots in the <a href="https://github.com/NB-Corp/gpt-with-taste/tree/master/docs/cases/codex-first-use">case folder ↗</a>.</p>
     </section>
 
     <section>
       <h2>More cases</h2>
-      <p><a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases.md">Case index ↗</a> · <a href="https://github.com/NB-Corp/gpt-with-taste/tree/master/docs/cases/button-overrides">Button class overrides — complete originals ↗</a></p>
+      <p><a href="https://github.com/NB-Corp/gpt-with-taste/blob/master/docs/cases.md">Case index ↗</a> · <a href="https://github.com/NB-Corp/gpt-with-taste/tree/master/docs/cases/clsx-onboarding">clsx onboarding — complete originals ↗</a> · <a href="https://github.com/NB-Corp/gpt-with-taste/tree/master/docs/cases/button-overrides">Button class overrides — complete originals ↗</a></p>
     </section>
   </main>
 

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <style>
+      .kicker { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 3.2px; }
+      .display { font-family: Georgia, 'Times New Roman', serif; font-size: 108px; font-weight: 400; }
+      .tagline { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 34px; font-weight: 600; letter-spacing: 0.2px; }
+      .sub { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 21px; font-weight: 400; }
+    </style>
+  </defs>
+
+  <!-- Canvas -->
+  <rect width="1200" height="630" rx="18" fill="#FBF9F5"/>
+  <rect x="0.75" y="0.75" width="1198.5" height="628.5" rx="17" fill="none" stroke="#E6E2D8" stroke-width="1.5"/>
+
+  <!-- Masthead kicker -->
+  <text x="72" y="86" class="kicker" fill="#5A606D">SYSTEM INSTRUCTIONS FOR OPENAI CODEX</text>
+  <text x="1128" y="86" text-anchor="end" class="kicker" fill="#C84824">GITHUB.COM/NB-CORP/GPT-WITH-TASTE</text>
+
+  <!-- Masthead double rule -->
+  <rect x="72" y="102" width="1056" height="3" fill="#1C1E21"/>
+  <rect x="72" y="110" width="1056" height="1" fill="#1C1E21"/>
+
+  <!-- Wordmark -->
+  <text x="70" y="268" class="display" fill="#1C1E21">GPT with <tspan font-style="italic" fill="#C84824">Taste</tspan></text>
+
+  <!-- Tagline -->
+  <text x="72" y="352" class="tagline" fill="#1C1E21">Better judgment<tspan fill="#C84824">.</tspan> Better taste<tspan fill="#C84824">.</tspan> Less ceremony<tspan fill="#C84824">.</tspan></text>
+
+  <!-- What it is -->
+  <text x="72" y="428" class="sub" fill="#5A606D">Behavioral instructions for OpenAI Codex — one complete main prompt.</text>
+  <text x="72" y="464" class="sub" fill="#5A606D">Optional per-turn Hooks refresh priorities as the task evolves.</text>
+
+  <!-- Bottom ledger rule -->
+  <rect x="72" y="540" width="1056" height="1" fill="#D8D2C2"/>
+  <text x="72" y="578" class="kicker" fill="#5A606D" style="font-size:13px; letter-spacing:2.6px;">MIT LICENSE</text>
+  <text x="1128" y="578" text-anchor="end" class="kicker" fill="#5A606D" style="font-size:13px; letter-spacing:2.6px;">JUDGMENT · CRAFT · FOLLOW-THROUGH</text>
+
+  <!-- Printer's device: the judgment instrument -->
+  <g transform="translate(868, 168) scale(2.1)">
+    <circle cx="60" cy="60" r="44" fill="none" stroke="#CFC8B8" stroke-width="2" stroke-dasharray="2 7" stroke-linecap="round"/>
+    <path d="M 60 22 L 60 98" stroke="#CFC8B8" stroke-width="1.5"/>
+    <path d="M 22 60 L 98 60" stroke="#CFC8B8" stroke-width="1.5"/>
+    <path d="M 44 74 C 52 68, 68 68, 76 46" fill="none" stroke="#C84824" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="60" cy="60" r="5" fill="#C84824"/>
+    <circle cx="60" cy="40" r="3" fill="#1C1E21"/>
+    <circle cx="60" cy="80" r="3" fill="#1C1E21"/>
+  </g>
+</svg>

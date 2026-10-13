@@ -55,5 +55,5 @@
   <!-- Footnote: run facts + fairness, in the one place the excerpt travels alone -->
   <text x="64" y="356" class="foot">Same model (GPT-6.1 Sol, high effort), same request, materials, AGENTS and skills on both sides. Quotes are verbatim.</text>
   <text x="64" y="374" class="foot">Left: Codex built-in Sol instructions (legacy placeholder removed). Right: complete main prompt only — hooks configured, not triggered this run.</text>
-  <text x="64" y="392" class="foot">Both guides are complete and usable for the same reader. Full originals and both sides' messages: docs/cases/clsx-onboarding/</text>
+  <text x="64" y="392" class="foot">Full originals and both sides' assistant messages: docs/cases/clsx-onboarding/</text>
 </svg>

@@ -70,10 +70,7 @@ GPT with Taste 把判断力用在结果上：作出合理选择、保留有据�
 
 可见的改善很直接：先让读者开始，安装证明与过程自证退出主线。
 
-| Codex 默认指令 | GPT with Taste |
-| :--- | :--- |
-| **文档开头** (`builtin.md:1-3`)<br><br># Codex 中文上手说明<br><br>**这份说明依据安装记录 `notes.md` 整理，未重新检查本机配置。**先正常打开一个新的 Codex 会话，就可以开始使用已安装的 Main 提示词；逐轮提醒是可选项，不影响这一步。 | **文档开头** (`taste.md:1-9`)<br><br># Codex 上手：直接开新会话<br><br>GPT with Taste 已安装。**正常打开一个新的 Codex 会话，就会使用 Main 提示词**；不用选择 controller、添加 profile 参数，也不用定制启动器。<br><br>## 先完成你的第一个任务<br><br>用中文说明你要做什么、涉及哪些文件，以及怎样算完成。例如：<br><br>> **帮我梳理这个项目的启动步骤，先只读文件，不修改任何内容。** |
-| **交付回复** (`builtin-assistant.md`)<br><br>已根据 `notes.md` 写好 [START_HERE.md](docs/cases/codex-first-use/builtin.md)，包含直接使用、可选提醒启用、未验证事项及恢复步骤。**仅新增该文件，未检查或修改实际配置。** | **交付回复** (`taste-assistant.md`)<br><br>已根据 `notes.md` 写好 [START_HERE.md](docs/cases/codex-first-use/taste.md)，包含新会话用法、Main/Sub 当前状态、可选提醒启用步骤及恢复命令。 |
+[![Codex 默认与 GPT with Taste 的代表片段对照，原版多余的自证句已高亮](assets/case-first-use.png)](https://nb-corp.github.io/gpt-with-taste/)
 
 查阅完整输入、生成文档与运行条件：[同题任务与运行记录](docs/cases/codex-first-use/input.md) · [网页版对比展示](https://nb-corp.github.io/gpt-with-taste/) · [案例索引](docs/cases.md)。
 
