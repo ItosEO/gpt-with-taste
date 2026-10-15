@@ -115,6 +115,11 @@ export function keyLine(text) {
   const doc = scanToml(text);
   return doc.assignment ? doc.lines[doc.assignment.index] : null;
 }
+export function sameInstructionLine(line, recorded) {
+  // A line separator belongs to the surrounding document, not the managed key.
+  return line === recorded || (typeof line === 'string' && typeof recorded === 'string' &&
+    line.replace(/\r?\n$/, '') === recorded.replace(/\r?\n$/, ''));
+}
 export function setInstructions(text, absolutePath) {
   const doc = scanToml(text);
   const value = JSON.stringify(absolutePath.replaceAll('\\', '/'));
@@ -131,6 +136,12 @@ export function restoreInstructions(text, oldLine) {
   const doc = scanToml(text);
   if (!doc.assignment) fail('managed config key is missing; restore refused');
   if (oldLine === null) doc.lines.splice(doc.assignment.index, 1);
-  else doc.lines[doc.assignment.index] = oldLine;
+  else {
+    const index = doc.assignment.index;
+    // Preserve an original EOF line exactly unless later content needs a separator.
+    const separator = index < doc.lines.length - 1 && !oldLine.endsWith('\n')
+      ? doc.lines[index].slice(doc.assignment.raw.length) || doc.newline : '';
+    doc.lines[index] = oldLine + separator;
+  }
   return (doc.hasBom ? '\uFEFF' : '') + doc.lines.join('');
 }

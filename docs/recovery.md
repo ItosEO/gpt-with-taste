@@ -7,7 +7,7 @@ node scripts/install.mjs --restore --home "/absolute/path/to/.codex" --dry-run
 node scripts/install.mjs --restore --home "/absolute/path/to/.codex"
 ```
 
-The installer restores the original `model_instructions_file` line, or removes it if absent. It restores previous bytes at managed file targets and removes files it created. Other config keys, user Hooks and later unrelated changes remain.
+The installer restores the original `model_instructions_file` assignment, retaining a line separator when later content needs one, or removes it if originally absent. It restores previous bytes at managed file targets and removes files it created. Other config keys, user Hooks and later unrelated changes remain.
 
 Plugin recovery removes `gpt-with-taste@gpt-with-taste-local` and its owned marketplace through Codex's normal remove commands. Review any Hook trust you approved through Codex `/hooks`; the installer does not change trust records. Prompt-only and legacy-only recovery do not require the plugin CLI.
 

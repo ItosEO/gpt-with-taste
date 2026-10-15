@@ -36,7 +36,7 @@ cd gpt-with-taste
 node scripts/install.mjs --hooks
 ```
 
-推荐在 Codex Desktop 的多轮工作中安装 Hooks：用户发消息、子 Agent 收到输入、主控取回完成结果时，各自收到对应提醒。只安装提示词则运行 `node scripts/install.mjs`。两条路线都不需要 npm 包。
+推荐在 Codex Desktop 的多轮工作中安装 Hooks：用户提交、子 Agent 启动以及受支持的等待结果各自收到对应提醒。后续子 Agent 输入能否刷新提醒，取决于[客户端入口](docs/install.md#runtime-coverage)。只安装提示词则运行 `node scripts/install.mjs`。两条路线都不需要 npm 包。
 
 两条路线都安装到当前生效的 `CODEX_HOME`（未设置时为 `~/.codex`），写入两个受管提示词文件，并把 `model_instructions_file` 指向 main。你的模型、provider、effort、认证、权限、MCP、角色与 `AGENTS.md` 保持不变。要指定其他位置，追加带引号的绝对路径，例如 `--home "C:/Users/you/.codex"`。
 
@@ -81,7 +81,7 @@ GPT with Taste 把判断力用在结果上：作出合理选择、保留有据�
 ## 工作机制
 
 1. **系统提示词设定长期优先级。** 它覆盖判断、执行、协作与审美；提示词本体为英文，回复跟随你最新使用的语言。
-2. **Steer 在输入附近重新强调对应行为。** 本地插件把用户提醒交给主控，把范围内执行提醒交给子 Agent，并在主控取回完成回执后送入成果消费提醒。子 Agent 配对的启动事件只注入一份提醒。具体事件和客户端入口见[安装说明](docs/install.md#add-optional-per-turn-steering)。
+2. **Steer 在受支持的事件处重新强调对应行为。** 本地插件把用户提醒交给主控，把范围内执行提醒交给子 Agent，并在受支持的等待结果后送入输入消费提醒。若客户端派发配对的启动事件，子 Agent 只收到一份初始提醒。具体事件和客户端入口见[安装说明](docs/install.md#add-optional-per-turn-steering)。
 
 `prompts/sub.md` 留给你指定的角色使用。main 与 sub 提示词各自包含完整行为；`--hooks` 安装这三条提醒路线。
 

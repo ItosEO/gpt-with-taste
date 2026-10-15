@@ -21,7 +21,7 @@ For an unknown differing managed target, review it and obtain approval before us
 
 ## Optional Hooks
 
-Recommend Hooks for multi-turn work in Codex Desktop. The plugin refreshes the main agent's priorities, gives delegated agents their own reminder, and guides main when it collects a completed result. The previously tested `0.162.0-alpha.17.2` `exec resume` entry did not dispatch these events; use the complete main prompt for that entry.
+Recommend Hooks for multi-turn work in Codex Desktop. The plugin refreshes Main on user submission, gives children a startup reminder, and guides Main on supported wait receipts or mailbox wakes. Later child inputs receive reminders only when the client dispatches their Hook event. The previously tested `0.162.0-alpha.17.2` `exec resume` entry did not dispatch these events; use the complete main prompt for that entry.
 
 If the user requests the plugin definitions and has a Codex CLI supporting local marketplace/plugin install, list and remove commands:
 
@@ -33,7 +33,9 @@ node scripts/install.mjs --check --home "/absolute/path/to/.codex"
 
 Supply `--codex "/absolute/path/to/codex"` when it is not on PATH. The installer assembles its local marketplace, then uses normal Codex CLI commands to install `gpt-with-taste@gpt-with-taste-local`. Do not replace these with hand-written registry entries or an inline Hook loader.
 
-The three routes are user input to main, child startup/later input to the child, and completed local `wait_agent` receipts to main. The child receives one initial reminder across its paired startup events. A shared finite matcher accepts bare, dotted and flattened tool names. Original tasks and results remain intact.
+The three routes are user input to Main, child startup/dispatched child input, and supported local `wait_agent` results to Main. A matching paired startup input is suppressed once; retained child identity routes later events even without `agent_id`. The shared finite matcher accepts bare, dotted and flattened `multi_agent_v1` / `collaboration` names. Current collaboration waits return a mailbox wake, not proof of completion. Original tasks and results remain intact.
+
+In the Codex 0.162.1 runtime probe, native `followup_task` did not dispatch a child `UserPromptSubmit`. Do not report per-input reminder coverage for that path. Use the complete Sub source in selected roles for standing child instructions, preserving their existing contracts; see [runtime coverage](install.md#runtime-coverage).
 
 For manual approval, use Codex Desktop's **Settings → Hooks** with the same `CODEX_HOME`, or `/hooks` in the interactive terminal. Review this plugin's `UserPromptSubmit`, `SubagentStart` and `PostToolUse` definitions pointing to `hooks/steer.mjs`; a changed definition needs approval again.
 
