@@ -30,7 +30,7 @@ The top-level `model_instructions_file` in `config.toml` points to the installed
 
 ## Add optional per-turn steering
 
-We recommend Hooks for multi-turn work in Codex Desktop: they refresh the relevant behavior when you submit a message, start a subagent, or collect its completed result. Codex documents these [Hook events](https://learn.chatgpt.com/docs/hooks). The previously tested `0.162.0-alpha.17.2` `exec resume` entry did not dispatch the plugin events; use the complete main prompt for that entry.
+We recommend Hooks for multi-turn work in Codex Desktop: they refresh the relevant behavior on user submission, child startup and supported wait results. Later child input receives a reminder only when the client dispatches its Hook event. Codex documents these [Hook events](https://learn.chatgpt.com/docs/hooks). The previously tested `0.162.0-alpha.17.2` `exec resume` entry did not dispatch the plugin events; use the complete main prompt for that entry.
 
 To install the definitions, use a Codex CLI supporting local marketplace/plugin install, list and remove commands:
 
@@ -46,17 +46,25 @@ The installer assembles author sources into `CODEX_HOME/gpt-with-taste/marketpla
 
 | Event | Intended consumer |
 | --- | --- |
-| `UserPromptSubmit` | Main receives `user-steer.md`. Later inputs identified as child-agent turns receive `sub-steer.md`. |
-| `SubagentStart` | The child receives `sub-steer.md`; its first `UserPromptSubmit` is deduplicated using the session, agent and turn IDs. |
-| `PostToolUse` for local `wait_agent` | Main receives `agent-steer.md` when a completed receipt is returned without a timeout. Bare, dotted and flattened `multi_agent_v1` tool names use the same matcher. |
+| `UserPromptSubmit` | Main receives `user-steer.md`. Child inputs receive `sub-steer.md` when `agent_id` is present or `session_id` matches a child recorded at startup. |
+| `SubagentStart` | The child receives `sub-steer.md`. A paired `UserPromptSubmit` with the same child and initial turn is suppressed once; later turns retain their reminder. |
+| `PostToolUse` for local `wait_agent` | Main receives `agent-steer.md` for a completed legacy receipt or a current collaboration mailbox wake, without a timeout. Bare, dotted and flattened `multi_agent_v1` / `collaboration` names share the matcher. |
 
 The Node command uses the recorded executable and the official `PLUGIN_ROOT` environment value, with a 15-second timeout. On Windows, the installer generates a PowerShell call with `&`, quoted executable and a `Join-Path` argument. The script reads adjacent `prompts/` files and returns developer context; the task and tool result stay intact. Incomplete, timed-out, not-found and child-session results receive no main-result reminder.
 
-The initial child-turn record lives under the plugin's `PLUGIN_DATA` directory. Optional audit output uses `GPT_WITH_TASTE_HOOK_AUDIT` and records event IDs, route and outcome, not prompt or result bodies. An audit write failure leaves the context response working; missing event metadata, a missing prompt file or an unusable deduplication record produces a named diagnostic on stderr.
+Child identity and initial-turn state live under the plugin's `PLUGIN_DATA` directory. Identity remains after startup deduplication so a later event need not repeat `agent_id`; Main keeps its own route. Open new child sessions after updating. An explicit child input can also migrate the previous parent/child-keyed start record.
+
+Optional audit output uses `GPT_WITH_TASTE_HOOK_AUDIT` and records event IDs, route and outcome, not prompt or result bodies. `emitted` means the script returned context; the legacy `injected` field remains an alias. Receiving-agent context is the delivery evidence. An audit write failure leaves the response working; missing child-turn metadata, a missing prompt file or unusable identity state produces a named diagnostic on stderr.
 
 In Codex Desktop, open **Settings → Hooks** with the same `CODEX_HOME`; in the interactive terminal, use `/hooks`. Review and trust only the `UserPromptSubmit`, `SubagentStart` and `PostToolUse` definitions from `gpt-with-taste@gpt-with-taste-local`, each pointing to this plugin's `hooks/steer.mjs`. Installation enables the plugin but does not approve its commands. Codex records approval for the exact current definition; changed definitions need review again. Keep Node at its recorded path; if it moves, restore and reinstall with the new Node executable.
 
 `--check` verifies managed files, registration/enabled state and recorded cache bytes. It does not verify trust approval or event delivery, and it sends no model request.
+
+### Runtime coverage
+
+On Codex **0.162.1**, a Linux ARM64 runtime probe delivered the startup Sub reminder but native `followup_task` did not dispatch a child `UserPromptSubmit`. Those native follow-ups therefore do not receive a fresh per-input reminder. Use the [complete Sub source in selected roles](#use-the-complete-subagent-prompt-for-a-selected-role) for standing child behavior; the installer leaves role composition to you.
+
+The current `collaboration` wait returns a mailbox wake (`message: "Wait completed."`, `timed_out: false`), not a completion receipt. Its reminder asks Main to reconcile pending messages; it does not mark any child complete. Timeout, incomplete/not-found status receipts, unrelated tools and child-session results receive no Main reminder.
 
 ## Use the complete subagent prompt for a selected role
 

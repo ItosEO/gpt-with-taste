@@ -16,23 +16,57 @@ function parseEvent(raw) {
   if (typeof event.hook_event_name !== 'string' || !event.hook_event_name) fail('MISSING_METADATA', 'stdin event is missing hook_event_name');
   return event;
 }
-function completedReceipt(response) {
+function agentInputKind(response) {
   let value = response;
   if (typeof value === 'string') {
-    try { value = JSON.parse(value); } catch { return false; }
+    try { value = JSON.parse(value); } catch { return null; }
   }
-  return value && value.timed_out === false && typeof value.status === 'object' && value.status !== null &&
-    Object.values(value.status).some(status => status && typeof status.completed === 'string');
+  if (!value || value.timed_out !== false) return null;
+  if (value.status && typeof value.status === 'object' &&
+      Object.values(value.status).some(status => status && typeof status.completed === 'string')) return 'receipt';
+  // Codex 0.162.1's collaboration wait wakes Main for pending mailbox input.
+  // It is not a completion receipt; the reminder asks Main to reconcile input.
+  return !Object.hasOwn(value, 'status') && value.message === 'Wait completed.' ? 'mailbox' : null;
 }
-function classify(event) {
-  if (event.hook_event_name === 'UserPromptSubmit') return {route: event.agent_id ? 'sub' : 'user', reason: 'INJECTED'};
+function classify(event, knownChild = false) {
+  if (event.hook_event_name === 'UserPromptSubmit') return {route: event.agent_id || knownChild ? 'sub' : 'user', reason: 'INJECTED'};
   if (event.hook_event_name === 'SubagentStart') return {route: 'sub', reason: 'INJECTED'};
   if (event.hook_event_name !== 'PostToolUse') return {route: null, reason: 'UNSUPPORTED_EVENT'};
   if (typeof event.tool_name !== 'string' || !event.tool_name) fail('MISSING_METADATA', 'PostToolUse event is missing tool_name');
   if (!normalizeLocalTool(event.tool_name)) return {route: null, reason: 'UNSUPPORTED_TOOL'};
-  if (event.agent_id) return {route: null, reason: 'CHILD_RESULT'};
+  if (event.agent_id || knownChild) return {route: null, reason: 'CHILD_RESULT'};
   if (!Object.hasOwn(event, 'tool_response')) fail('MISSING_METADATA', 'wait_agent PostToolUse event is missing tool_response');
-  return completedReceipt(event.tool_response) ? {route: 'agent', reason: 'INJECTED'} : {route: null, reason: 'NOT_COMPLETED'};
+  const kind = agentInputKind(event.tool_response);
+  return kind ? {route: 'agent', reason: kind === 'mailbox' ? 'MAILBOX_UPDATE' : 'INJECTED'} : {route: null, reason: 'NOT_COMPLETED'};
+}
+function childState(event, dataDirectory) {
+  const childId = event.agent_id || event.session_id;
+  if (!dataDirectory || typeof childId !== 'string' || !childId) return null;
+  const directory = path.join(dataDirectory, 'steer-start');
+  const file = path.join(directory, `${encodeURIComponent(childId)}.json`);
+  const candidates = [file];
+  // Existing installations used a parent/child key for the initial-turn record.
+  if (event.agent_id && typeof event.session_id === 'string') {
+    candidates.push(path.join(directory, `${encodeURIComponent(event.session_id)}--${encodeURIComponent(childId)}.json`));
+  }
+  for (const candidate of candidates) {
+    try {
+      const state = JSON.parse(fs.readFileSync(candidate, 'utf8'));
+      if (typeof state.turnId !== 'string' || (Object.hasOwn(state, 'initialPending') && typeof state.initialPending !== 'boolean')) throw new Error('Invalid child-turn record');
+      return {file, previous: candidate, state};
+    } catch (error) {
+      if (error.code === 'ENOENT') continue;
+      fail('STATE_IO_FAILED', `Cannot read child identity at ${candidate}: ${error.message}`);
+    }
+  }
+  return null;
+}
+function recordChild(file, state, previous = file) {
+  try {
+    fs.mkdirSync(path.dirname(file), {recursive: true});
+    fs.writeFileSync(file, JSON.stringify(state));
+    if (previous !== file) fs.unlinkSync(previous);
+  } catch (error) { fail('STATE_IO_FAILED', `Cannot record child identity at ${file}: ${error.message}`); }
 }
 export function selectRoute(event) { return classify(event).route; }
 function routeOutput(route, hookEventName, prompts) {
@@ -47,29 +81,30 @@ function routeOutput(route, hookEventName, prompts) {
   }};
 }
 export function evaluateHook(raw, prompts = path.join(root, 'prompts'), dataDirectory = null) {
-  const event = parseEvent(raw), result = classify(event);
+  const event = parseEvent(raw);
+  const readsIdentity = event.hook_event_name === 'UserPromptSubmit' ||
+    (event.hook_event_name === 'PostToolUse' && normalizeLocalTool(event.tool_name));
+  const knownChild = readsIdentity ? childState(event, dataDirectory) : null;
+  const result = classify(event, Boolean(knownChild));
   if (!result.route) return {...result, response: {continue: true}};
-  // Codex sends both events for a child's first turn. A later parent message
-  // has a new turn_id and must retain its Sub reminder.
   if (result.route === 'sub' && dataDirectory) {
-    if (['session_id', 'agent_id', 'turn_id'].some(key => typeof event[key] !== 'string' || !event[key])) fail('MISSING_METADATA', `${event.hook_event_name} dedup requires string session_id, agent_id and turn_id`);
-    const directory = path.join(dataDirectory, 'steer-start');
-    const file = path.join(directory, `${encodeURIComponent(event.session_id)}--${encodeURIComponent(event.agent_id)}.json`);
+    const childId = event.agent_id || (knownChild ? event.session_id : null);
+    if (['session_id', 'turn_id'].some(key => typeof event[key] !== 'string' || !event[key]) || typeof childId !== 'string' || !childId) {
+      fail('MISSING_METADATA', `${event.hook_event_name} requires string session_id, turn_id and a known child identity`);
+    }
+    const file = path.join(dataDirectory, 'steer-start', `${encodeURIComponent(childId)}.json`);
     if (event.hook_event_name === 'SubagentStart') {
       const response = routeOutput(result.route, event.hook_event_name, prompts);
-      try { fs.mkdirSync(directory, {recursive: true}); fs.writeFileSync(file, JSON.stringify({turnId: event.turn_id})); }
-      catch (error) { fail('STATE_IO_FAILED', `Cannot record initial child turn at ${file}: ${error.message}`); }
+      recordChild(file, {turnId: event.turn_id, initialPending: true});
       return {...result, response};
     }
-    let firstTurn;
-    try {
-      if (fs.existsSync(file)) {
-        firstTurn = JSON.parse(fs.readFileSync(file, 'utf8')).turnId;
-        if (typeof firstTurn !== 'string') throw new Error('State is missing turnId');
-        fs.unlinkSync(file);
-      }
-    } catch (error) { fail('STATE_IO_FAILED', `Cannot consume initial child turn at ${file}: ${error.message}`); }
-    if (firstTurn === event.turn_id) return {...result, reason: 'DEDUPLICATED', response: {continue: true}};
+    // Suppress only an observed paired turn. A missing initial input must never
+    // suppress a later turn, and consuming the pair must not erase child identity.
+    const state = knownChild?.state;
+    const duplicate = state && state.initialPending !== false && state.turnId === event.turn_id;
+    const response = duplicate ? {continue: true} : routeOutput(result.route, event.hook_event_name, prompts);
+    recordChild(file, {turnId: state?.turnId ?? event.turn_id, initialPending: false}, knownChild?.previous ?? file);
+    return {...result, reason: duplicate ? 'DEDUPLICATED' : result.reason, response};
   }
   return {...result, response: routeOutput(result.route, event.hook_event_name, prompts)};
 }
@@ -85,12 +120,12 @@ function cliRoute(argv) {
   if (index < 0 || index + 1 >= argv.length || argv.length !== index + 2) return null;
   return FALLBACK_ROUTES.has(argv[index + 1]) ? argv[index + 1] : null;
 }
-function audit(event, route, fallback, reason, injected) {
+function audit(event, route, fallback, reason, emitted) {
   if (!process.env.GPT_WITH_TASTE_HOOK_AUDIT) return;
   const record = {event: event?.hook_event_name ?? null, sessionId: event?.session_id ?? null,
     turnId: event?.turn_id ?? null, agentId: event?.agent_id ?? null, agentType: event?.agent_type ?? null,
     tool: event?.tool_name ?? null, normalizedTool: normalizeLocalTool(event?.tool_name), toolUseId: event?.tool_use_id ?? null,
-    route, fallback, reason, injected};
+    route, fallback, reason, emitted, injected: emitted};
   try { fs.appendFileSync(process.env.GPT_WITH_TASTE_HOOK_AUDIT, JSON.stringify(record) + '\n'); }
   catch (error) { process.stderr.write(`GPT with Taste Hook [AUDIT_WRITE_FAILED]: ${error.message}\n`); }
 }

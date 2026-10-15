@@ -13,7 +13,7 @@ test('real Codex CLI installs, updates, deduplicates legacy, checks and restores
   const scratch=path.join(repo,'.tmp/plugin-install-test');await fs.mkdir(scratch,{recursive:true});const base=await fs.mkdtemp(path.join(scratch,'case-'));t.after(()=>fs.rm(base,{recursive:true,force:true}));
   const root=path.join(base,'clone'),home=path.join(base,'Codex Home');await fs.mkdir(home,{recursive:true});
   for(const file of ['prompts/main.md','prompts/sub.md','prompts/user-steer.md','prompts/sub-steer.md','prompts/agent-steer.md','hooks/steer.mjs','hooks/local-tools.mjs','plugin/plugin.json','plugin/marketplace.json']){const target=path.join(root,file);await fs.mkdir(path.dirname(target),{recursive:true});await fs.copyFile(path.join(repo,file),target);}
-  const config='# peer config\nmodel = "existing-gpt"\nmodel_reasoning_effort = "high"\nmodel_instructions_file = \'old/main.md\' # original\n[features]\nhooks = true\n';await fs.writeFile(path.join(home,'config.toml'),config);
+  const config='# peer config\nfeatures.hooks = true\nmodel = "existing-gpt"\nmodel_reasoning_effort = "high"\nmodel_instructions_file = \'old/main.md\' # original';await fs.writeFile(path.join(home,'config.toml'),config);
   await fs.mkdir(path.join(home,'old'),{recursive:true});await fs.writeFile(path.join(home,'old/main.md'),'PREVIOUS INSTRUCTIONS\n');
   const call=(...args)=>run(['--home',home,'--codex',process.env.CODEX_EXECUTABLE,...args],root);
   const receiptFile=path.join(root,'.gpt-with-taste/install-receipt.json');

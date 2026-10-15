@@ -51,11 +51,11 @@ The sources refer to the current Codex tools, schemas, role restrictions, and ev
 
 Selecting [optional hooks](install.md#add-optional-per-turn-steering) assembles the single author sources into a local marketplace and installs `gpt-with-taste@gpt-with-taste-local` through the normal Codex plugin CLI. The plugin configures three source-specific routes:
 
-- `UserPromptSubmit`: `user-steer.md` addresses main; a later child turn carrying `agent_id` receives `sub-steer.md`.
-- `SubagentStart`: `sub-steer.md` enters the child alongside its role and task. The session, agent and initial turn IDs suppress the paired first `UserPromptSubmit`, so the child gets one initial reminder.
-- `PostToolUse`: a finite shared name map recognizes `wait_agent`, `multi_agent_v1.wait_agent` and `multi_agent_v1wait_agent`. Main receives `agent-steer.md` when `timed_out` is `false` and the status map contains a `{completed: string}` receipt. The original result stays intact; incomplete, timed-out, not-found, shell/MCP and child-session results select no main reminder.
+- `UserPromptSubmit`: `user-steer.md` addresses main; a child identified by `agent_id` or its recorded child session receives `sub-steer.md`.
+- `SubagentStart`: `sub-steer.md` enters the child alongside its role and task. The child identity and initial turn suppress a matching paired input once. Identity remains available to route later events without assuming parent and child session IDs match.
+- `PostToolUse`: a finite shared map recognizes bare `wait_agent` and dotted/flattened `multi_agent_v1` and `collaboration` names. Main receives `agent-steer.md` for a non-timeout `{completed: string}` status receipt or the current collaboration mailbox wake. The latter asks Main to consume pending input without asserting task completion. Original results stay intact; incomplete, timed-out, not-found, shell/MCP and child-session results select no Main reminder.
 
-`SubagentStop` controls continuation inside the child. Parent follow-ups use the subagent-identified `UserPromptSubmit`; dispatch arguments and automatic completion notifications are left intact. The complete `sub.md` remains available for roles the user chooses.
+`SubagentStop` controls continuation inside the child. Later child inputs are routed only when the client dispatches `UserPromptSubmit`; Codex 0.162.1 native `followup_task` did not dispatch that event in the runtime probe. Dispatch arguments and automatic completion notifications remain intact. The complete `sub.md` remains available for roles the user chooses.
 
 The Windows launcher invokes Node with PowerShell's `&` call operator and reads the official `PLUGIN_ROOT` environment value. Event JSON supplies the consumer and turn identity. Named diagnostics identify missing metadata or source/state failures; optional audit logging never blocks a successful context response. See [installation](install.md#add-optional-per-turn-steering) for setup and trust.
 

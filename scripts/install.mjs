@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {keyLine, setInstructions, restoreInstructions} from '../src/toml-overlay.mjs';
+import {keyLine, sameInstructionLine, setInstructions, restoreInstructions} from '../src/toml-overlay.mjs';
 import {parseHooks, assertHook, restoreHook, receiptHooks, retireHook} from '../src/hooks-overlay.mjs';
 import {pluginBundle, codexPlugin, assertPluginInventory, MARKET_ROOT, ID} from '../src/codex-plugin.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -63,7 +63,7 @@ async function loadReceipt(file,home){
 }
 async function inspect(home,receipt,recovery=false){
   const configPath=path.join(home,'config.toml'),configBytes=await read(configPath),configText=decode(configBytes),line=keyLine(configText);
-  if(line!==receipt.config.after&&!(recovery&&(line===receipt.config.before||line===receipt.config.previous)))fail('Managed config key has drifted: model_instructions_file. Keep the receipt and reconcile this key before retrying.');
+  if(!sameInstructionLine(line,receipt.config.after)&&!(recovery&&(sameInstructionLine(line,receipt.config.before)||sameInstructionLine(line,receipt.config.previous))))fail('Managed config key has drifted: model_instructions_file. Keep the receipt and reconcile this key before retrying.');
   const files=[];
   for(const entry of receipt.files){
     const file=path.join(home,entry.path),bytes=await read(file);
@@ -112,8 +112,8 @@ export async function run(args=process.argv.slice(2),root=ROOT,services={}){
     if(state?.plugin)await api.remove();if(state?.market)await api.removeMarket();
     // Codex manages its registry through the CLI. Re-read config after its commands.
     const latest=await read(current.configPath),text=decode(latest),line=keyLine(text);
-    if(line!==current.line)fail('Managed config key changed during Codex removal; recovery receipt retained');
-    const restored=line===active.config.before?text:restoreInstructions(text,active.config.before);
+    if(!sameInstructionLine(line,current.line))fail('Managed config key changed during Codex removal; recovery receipt retained');
+    const restored=sameInstructionLine(line,active.config.before)?text:restoreInstructions(text,active.config.before);
     await cas(current.configPath,latest,active.config.fileWasAbsent&&restored.trim()===''?null:Buffer.from(restored));
     for(const item of current.files)await cas(item.file,item.bytes,unpack(item.entry.before));
     if(current.hooks)await cas(current.hooks.file,current.hooks.bytes,hooksAfter);
@@ -122,7 +122,7 @@ export async function run(args=process.argv.slice(2),root=ROOT,services={}){
   if(active&&active.status!=='applied')fail('Previous operation was interrupted; run --restore before installing again');
   if(active)await inspect(options.home,options.hooks?active:{...active,files:active.files.filter(entry=>PROMPTS.has(entry.path)),hook:undefined,hookGroups:undefined});
   const configPath=path.join(options.home,'config.toml'),configBefore=await read(configPath),configText=decode(configBefore);
-  if(active&&keyLine(configText)!==active.config.after)fail('Managed config key changed during planning; no overwrite');
+  if(active&&!sameInstructionLine(keyLine(configText),active.config.after))fail('Managed config key changed during planning; no overwrite');
   const configAfter=Buffer.from(setInstructions(configText,path.join(options.home,[...PROMPTS.keys()][0])));
   const targets=new Map();for(const [target,source]of PROMPTS){const bytes=await read(path.join(root,source));if(!bytes?.length)fail(`Missing or empty bundled source: ${source}`);targets.set(target,bytes);}
   let plugin=active?.plugin,hooks;
@@ -170,7 +170,7 @@ export async function run(args=process.argv.slice(2),root=ROOT,services={}){
       const relative=path.relative(path.join(options.home,'plugins','cache'),result.installedPath);if(relative.startsWith('..')||path.isAbsolute(relative))fail('Codex returned a plugin cache outside selected home');
       const prefix=`${MARKET_ROOT}/plugins/gpt-with-taste/`;
       for(const item of files.filter(item=>item.path.startsWith(prefix))){const target=item.path.slice(prefix.length),bytes=await read(path.join(result.installedPath,target));if(!equal(bytes,item.after))fail(`Codex installed different plugin bytes: ${target}`);receipt.plugin.cacheFiles.push({path:target,after:encode(bytes)});}
-      if(keyLine(decode(await read(configPath)))!==receipt.config.after)fail('Managed config key changed during Codex installation');
+      if(!sameInstructionLine(keyLine(decode(await read(configPath))),receipt.config.after))fail('Managed config key changed during Codex installation');
     }
     const applied={...receipt,status:'applied',config:{...receipt.config},files:receipt.files.map(item=>({...item}))};delete applied.config.previous;for(const item of applied.files)delete item.previous;
     if(applied.hookGroups)applied.hookGroups=applied.hookGroups.map(({previous,...record})=>record);

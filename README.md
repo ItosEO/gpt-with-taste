@@ -35,7 +35,7 @@ cd gpt-with-taste
 node scripts/install.mjs --hooks
 ```
 
-We recommend Hooks for multi-turn work in Codex Desktop: reminders arrive with your message, with the child's input, and when main collects a completed result. For a prompt-only installation, run `node scripts/install.mjs` instead. Neither route needs npm packages.
+We recommend Hooks for multi-turn work in Codex Desktop: user submissions, child startup and supported wait results receive scoped reminders. Later child-input coverage depends on the [client entry point](docs/install.md#runtime-coverage). For a prompt-only installation, run `node scripts/install.mjs` instead. Neither route needs npm packages.
 
 Both routes install into the active `CODEX_HOME` (otherwise `~/.codex`), write the two managed prompt files, and point `model_instructions_file` at the main one. Your model, provider, effort, authentication, permissions, MCP servers, roles, and `AGENTS.md` remain unchanged. To target another home, add `--home` with a quoted absolute path, for example `--home "C:/Users/you/.codex"`.
 
@@ -80,7 +80,7 @@ Inspect full inputs, generated documents, and run conditions: [Task & run condit
 ## How it works
 
 1. **The system prompt sets standing priorities.** It covers judgment, execution, collaboration, and craft. The instructions are English; replies follow your latest language.
-2. **Steer refreshes the relevant priorities near each input.** The local plugin sends user reminders to main, scoped reminders to children, and result-consumption reminders to main after a completed wait. A child's paired startup events produce one reminder. [Installation details](docs/install.md#add-optional-per-turn-steering) cover the events and client entry points.
+2. **Steer refreshes priorities at supported events.** The local plugin sends user reminders to main, scoped reminders to children, and input-consumption reminders to main after a supported wait result. When the client emits paired startup events, the child receives one initial reminder. [Installation details](docs/install.md#add-optional-per-turn-steering) cover the events and client entry points.
 
 `prompts/sub.md` is included for roles you choose. Main and sub prompts each contain the complete behavior; `--hooks` installs all three reminder routes.
 

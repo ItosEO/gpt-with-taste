@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 import {run} from './install.mjs';
 import {setInstructions} from '../src/toml-overlay.mjs';
+import {WAIT_TOOL_MATCHER} from '../hooks/local-tools.mjs';
 import {hookGroup, installHook, ROUTES} from '../src/hooks-overlay.mjs';
 import {MARKET, MARKET_ROOT, ID, pluginBundle} from '../src/codex-plugin.mjs';
 const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -37,6 +38,32 @@ test('prompt-only preserves all other bytes and hooks; no Codex prerequisite; or
   await put(path.join(root,'prompts/main.md'),'UPDATED');await call();await fs.appendFile(path.join(home,'config.toml'),'[analytics]\r\nenabled = false\r\n');await call('--check');await call('--restore');
   assert.equal(await fs.readFile(path.join(home,'config.toml'),'utf8'),original+'[analytics]\r\nenabled = false\r\n');assert.equal(await fs.readFile(path.join(home,'hooks.json'),'utf8'),'INVALID USER HOOK FILE');assert.deepEqual(calls,[]);
 });
+for (const newline of ['\n', '\r\n']) test(`EOF instruction line accepts an unrelated ${JSON.stringify(newline)} append and restores safely`, async t => {
+  const {home, call} = await fixture(t), config = path.join(home, 'config.toml');
+  const before = 'model_instructions_file = "old/main.md" # original EOF';
+  const added = `${newline}[analytics]${newline}enabled = false${newline}`;
+  await put(config, before);
+  await call();
+  await fs.appendFile(config, added);
+  await call('--check');
+  await call();
+  const installed = await fs.readFile(config, 'utf8');
+  await put(config, installed.replace('/main.md', '/user-choice.md'));
+  await assert.rejects(call('--check'), /config key has drifted/);
+  await assert.rejects(call('--restore'), /config key has drifted/);
+  await put(config, installed);
+  await call('--restore');
+  assert.equal(await fs.readFile(config, 'utf8'), before + added);
+});
+test('EOF instruction line restores without adding a final newline when nothing was appended', async t => {
+  const {home, call} = await fixture(t), config = path.join(home, 'config.toml');
+  const before = 'model_instructions_file = "old/main.md"';
+  await put(config, before);
+  await call();
+  await call('--check');
+  await call('--restore');
+  assert.equal(await fs.readFile(config, 'utf8'), before);
+});
 test('unknown managed bytes require explicit replacement and restore exactly',async t=>{
   const {home,root,call}=await fixture(t);const file=path.join(home,'prompts/gpt-with-taste/main.md'),old=Buffer.from([0,1,255,13,10]);await put(file,old);
   await assert.rejects(call(),/Unknown managed target/);assert.equal(await exists(receipt(root)),false);await call('--replace-managed');await call('--restore');assert.deepEqual(await fs.readFile(file),old);assert.equal(await exists(path.join(home,'config.toml')),false);
@@ -49,7 +76,7 @@ test('plugin bundle installs three routes, leaves all user hooks untouched, upda
   const {root,home,call,state,calls}=await fixture(t);await put(path.join(home,'hooks.json'),'USER HOOK JSON IS NOT OURS');await put(path.join(home,'config.toml'),original);
   await call();await call('--hooks','--dry-run');assert.equal(state.plugin,null);await call('--hooks');assert.equal(state.plugin.enabled,true);
   const data=JSON.parse(await fs.readFile(receipt(root)));const hooks=JSON.parse(await fs.readFile(path.join(data.plugin.cacheRoot,'hooks/hooks.json')));
-  assert.deepEqual(Object.keys(hooks.hooks),['UserPromptSubmit','SubagentStart','PostToolUse']);assert.equal(hooks.hooks.PostToolUse[0].matcher,'^(?:wait_agent|multi_agent_v1\\.wait_agent|multi_agent_v1wait_agent)$');assert.equal(hooks.hooks.UserPromptSubmit[0].hooks[0].timeout,15);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,process.platform==='win32'?/\$env:PLUGIN_ROOT/:/\$\{PLUGIN_ROOT\}/);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,/--route user$/);assert.match(hooks.hooks.SubagentStart[0].hooks[0].command,/--route sub$/);assert.match(hooks.hooks.PostToolUse[0].hooks[0].command,/--route agent$/);
+  assert.deepEqual(Object.keys(hooks.hooks),['UserPromptSubmit','SubagentStart','PostToolUse']);assert.equal(hooks.hooks.PostToolUse[0].matcher,WAIT_TOOL_MATCHER);assert.equal(hooks.hooks.UserPromptSubmit[0].hooks[0].timeout,15);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,process.platform==='win32'?/\$env:PLUGIN_ROOT/:/\$\{PLUGIN_ROOT\}/);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,/--route user$/);assert.match(hooks.hooks.SubagentStart[0].hooks[0].command,/--route sub$/);assert.match(hooks.hooks.PostToolUse[0].hooks[0].command,/--route agent$/);
   const baseline=await fs.readFile(receipt(root));await call('--hooks');assert.deepEqual(await fs.readFile(receipt(root)),baseline);assert.equal(calls.filter(name=>name==='install').length,1);
   await put(path.join(root,'prompts/user-steer.md'),'UPDATED STEER');await call('--hooks');const updated=JSON.parse(await fs.readFile(receipt(root)));assert.equal(await fs.readFile(path.join(updated.plugin.cacheRoot,'prompts/user-steer.md'),'utf8'),'UPDATED STEER');assert.equal(updated.config.before,data.config.before);
   await fs.appendFile(path.join(home,'config.toml'),'[analytics]\r\nenabled = false\r\n');await call('--check');await call('--restore');assert.equal(state.market,null);assert.equal(state.plugin,null);assert.equal(await fs.readFile(path.join(home,'config.toml'),'utf8'),original+'[analytics]\r\nenabled = false\r\n');assert.equal(await fs.readFile(path.join(home,'hooks.json'),'utf8'),'USER HOOK JSON IS NOT OURS');assert.equal(await exists(path.join(home,MARKET_ROOT,'plugins/gpt-with-taste/hooks/steer.mjs')),false);
