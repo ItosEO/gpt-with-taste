@@ -8,18 +8,28 @@ import {parseHooks, assertHook, restoreHook, receiptHooks, retireHook} from '../
 import {pluginBundle, codexPlugin, assertPluginInventory, MARKET_ROOT, ID} from '../src/codex-plugin.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RECEIPT = '.gpt-with-taste/install-receipt.json';
-const PROMPTS = new Map([['prompts/gpt-with-taste/main.md','prompts/main.md'],['prompts/gpt-with-taste/sub.md','prompts/sub.md']]);
+const MANAGED_SOURCES = new Map([
+  ['prompts/gpt-with-taste/main.md','prompts/main.md'],
+  ['prompts/gpt-with-taste/sub.md','prompts/sub.md'],
+  // A ready-to-copy TOML template; NEVER merge this into user config.toml automatically.
+  ['prompts/gpt-with-taste/developer.zh-CN.toml','prompts/developer.zh-CN.toml'],
+  // A discoverable Codex custom agent. Its read-only contract is advisory, not a sandbox.
+  ['agents/advisor.toml','agents/advisor.toml'],
+]);
 const LEGACY_FILES = ['gpt-with-taste/hooks/steer.mjs',...['user','sub','agent'].map(name=>`gpt-with-taste/prompts/${name}-steer.md`)];
 const BUNDLE_PATHS = ['.agents/plugins/marketplace.json','plugins/gpt-with-taste/.codex-plugin/plugin.json','plugins/gpt-with-taste/hooks/steer.mjs','plugins/gpt-with-taste/hooks/local-tools.mjs','plugins/gpt-with-taste/hooks/hooks.json',...['user','sub','agent'].map(name=>`plugins/gpt-with-taste/prompts/${name}-steer.md`)];
 const HELP = `GPT with Taste — Node.js 22+
   node scripts/install.mjs [--home ABSOLUTE_CODEX_HOME] [--hooks] [--override-base] [--dry-run]
+  node scripts/install.mjs --update [--home ABSOLUTE_CODEX_HOME] [--dry-run]
   node scripts/install.mjs --check [--home ABSOLUTE_CODEX_HOME]
   node scripts/install.mjs --restore [--home ABSOLUTE_CODEX_HOME] [--dry-run]
   --codex EXECUTABLE  Codex CLI for optional plugin install/check/restore (default: codex).
   --replace-managed  Explicitly replace conflicting managed files.
-Default home: CODEX_HOME, otherwise ~/.codex. Default install: prompt files only; Codex base instructions stay native.
+Default home: CODEX_HOME, otherwise ~/.codex. Default install: prompts and advisor agent; Codex base instructions stay native.
 --override-base explicitly replaces Codex's built-in model instructions with main.md.
 --hooks installs the local marketplace/plugin without overriding model instructions; review its commands in Codex /hooks.
+--update refreshes all managed files and preserves the originally installed Hooks/override mode.
+Developer Instructions are provided as a Chinese TOML template; merge them into config.toml manually.
 Recovery receipt: ${RECEIPT} in this clone. Keep it until you restore.
 `;
 function fail(message){throw new Error(message);}
@@ -50,15 +60,18 @@ function parse(args){
     else if(arg==='--replace-managed')options.replace=true;
     else if(arg==='--hooks')options.hooks=true;
     else if(arg==='--override-base')options.overrideBase=true;
+    else if(arg==='--update')options.update=true;
     else fail(`Unknown argument: ${arg}`);
   }
   if(!path.isAbsolute(options.home))fail('--home / CODEX_HOME must be an absolute directory');options.home=path.resolve(options.home);
-  if(options.mode!=='install'&&(options.replace||options.hooks||options.overrideBase))fail('--hooks, --override-base and --replace-managed are install options');return options;
+  if(options.mode!=='install'&&(options.replace||options.hooks||options.overrideBase||options.update))fail('--hooks, --override-base, --update and --replace-managed are install options');
+  if(options.update&&(options.hooks||options.overrideBase))fail('--update restores the existing installation mode; omit --hooks and --override-base');
+  return options;
 }
 async function loadReceipt(file,home){
   const bytes=await read(file);if(bytes===null)return {bytes,receipt:null};let receipt;
   try{receipt=JSON.parse(decode(bytes));}catch{fail('Unreadable recovery receipt; keep it for manual recovery');}
-  const allowed=new Set([...PROMPTS.keys(),...LEGACY_FILES,...BUNDLE_PATHS.map(file=>`${MARKET_ROOT}/${file}`)]);
+  const allowed=new Set([...MANAGED_SOURCES.keys(),...LEGACY_FILES,...BUNDLE_PATHS.map(file=>`${MARKET_ROOT}/${file}`)]);
   if(receipt.version!==1||receipt.home!==home||!['applying','applied','restoring','restored'].includes(receipt.status)||!Array.isArray(receipt.files)||receipt.files.some(entry=>!allowed.has(entry.path))||new Set(receipt.files.map(entry=>entry.path)).size!==receipt.files.length||!receipt.config||!(receipt.config.managed===false?receipt.config.after===null:typeof receipt.config.after==='string')||!(receipt.config.managed===undefined||typeof receipt.config.managed==='boolean')||!(receipt.config.before===null||typeof receipt.config.before==='string'))fail('Receipt belongs to another home or has an unsupported format; use its original clone and home');
   if(receipt.plugin&&(receipt.plugin.id!==ID||receipt.plugin.root!==path.join(home,MARKET_ROOT)))fail('Unsupported plugin receipt; keep it for recovery');
   return {bytes,receipt};
@@ -100,6 +113,12 @@ export async function run(args=process.argv.slice(2),root=ROOT,services={}){
   if(Number(process.versions.node.split('.')[0])<22)fail('Node.js 22 or newer is required');
   const options=parse(args);if(options.help){console.log(HELP);return;}
   const receiptPath=path.join(root,RECEIPT),saved=await loadReceipt(receiptPath,options.home),active=saved.receipt&&saved.receipt.status!=='restored'?saved.receipt:null;
+  if(options.update){
+    if(!active)fail('No active installation to update. Run install without --update first.');
+    // Keep the existing mode even if the user only types --update after git pull.
+    options.hooks=Boolean(active.plugin||receiptHooks(active).length);
+    options.overrideBase=active.config.managed!==false;
+  }
   const api=services.plugin??codexPlugin(options.home,options.codex??active?.plugin?.executable??'codex');
   if(options.mode==='check'){
     if(!active)fail('No active installation receipt in this clone');if(active.status!=='applied')fail('Installation was interrupted; run --restore');
@@ -126,11 +145,11 @@ export async function run(args=process.argv.slice(2),root=ROOT,services={}){
   }
   if(active&&active.status!=='applied')fail('Previous operation was interrupted; run --restore before installing again');
   if(active&&active.config.managed!==false&&!options.overrideBase)fail('The existing installation overrides Codex base instructions. Run --restore with the same --home, then install without --override-base.');
-  if(active)await inspect(options.home,options.hooks?active:{...active,files:active.files.filter(entry=>PROMPTS.has(entry.path)),hook:undefined,hookGroups:undefined});
+  if(active)await inspect(options.home,options.hooks?active:{...active,files:active.files.filter(entry=>MANAGED_SOURCES.has(entry.path)),hook:undefined,hookGroups:undefined});
   const configPath=path.join(options.home,'config.toml'),configBefore=await read(configPath),configText=decode(configBefore);
   if(active&&active.config.managed!==false&&keyLine(configText)!==active.config.after)fail('Managed config key changed during planning; no overwrite');
-  const configAfter=options.overrideBase?Buffer.from(setInstructions(configText,path.join(options.home,[...PROMPTS.keys()][0]))):configBefore;
-  const targets=new Map();for(const [target,source]of PROMPTS){const bytes=await read(path.join(root,source));if(!bytes?.length)fail(`Missing or empty bundled source: ${source}`);targets.set(target,bytes);}
+  const configAfter=options.overrideBase?Buffer.from(setInstructions(configText,path.join(options.home,[...MANAGED_SOURCES.keys()][0]))):configBefore;
+  const targets=new Map();for(const [target,source]of MANAGED_SOURCES){const bytes=await read(path.join(root,source));if(!bytes?.length)fail(`Missing or empty bundled source: ${source}`);targets.set(target,bytes);}
   let plugin=active?.plugin,hooks;
   if(options.hooks){
     if(plugin)await inspectPlugin(api,plugin,options.home);
@@ -153,7 +172,7 @@ export async function run(args=process.argv.slice(2),root=ROOT,services={}){
     if(!prior&&before!==null&&!equal(before,after)&&!options.replace)fail(`Unknown managed target already exists: ${file}. Review it, then use --replace-managed to preserve and replace it.`);
     files.push({path:target,file,before,after});
   }
-  if(options.dryRun){console.log(`Would install ${options.hooks?'prompt + marketplace/plugin':'prompt-only'}${options.overrideBase?' + base override':''}: ${options.home}\nModel instructions: ${options.overrideBase?'override-base':'native (config unchanged)'}\nManaged files: ${[...targets.keys()].join(', ')}`);return;}
+  if(options.dryRun){console.log(`Would ${options.update?'update':'install'} ${options.hooks?'prompt + marketplace/plugin':'prompt-only'}${options.overrideBase?' + base override':''}: ${options.home}\nModel instructions: ${options.overrideBase?'override-base':'native (config unchanged)'}\nManaged files: ${[...targets.keys()].join(', ')}`);return;}
   if(active&&(!options.hooks||active.plugin)&&equal(configBefore,configAfter)&&files.every(item=>equal(item.before,item.after))&&(!hooks||equal(hooks.before,hooks.after))){console.log(`Already installed; original recovery receipt retained: ${options.home}`);return;}
   if(options.hooks && plugin.cacheRoot){
     const prefix=`${MARKET_ROOT}/plugins/gpt-with-taste/`;
@@ -185,6 +204,6 @@ export async function run(args=process.argv.slice(2),root=ROOT,services={}){
     if(applied.hookGroups)applied.hookGroups=applied.hookGroups.map(({previous,...record})=>record);
     await cas(receiptPath,pending,json(applied));
   }catch(error){throw new Error(`${error.message}\nRecovery receipt retained. Run --restore with the same --home.`);}
-  console.log(`Installed ${options.hooks?'prompt + plugin':'prompt-only'}${options.overrideBase?' + base override':''}: ${options.home}\nCodex model instructions: ${options.overrideBase?'overridden':'native (unchanged)'}. Open a new Codex session.${options.hooks?' Review and trust the plugin commands in Codex /hooks.':''}\nRecovery: node scripts/install.mjs --restore --home ${JSON.stringify(options.home)}`);
+  console.log(`${options.update?'Updated':'Installed'} ${options.hooks?'prompt + plugin':'prompt-only'}${options.overrideBase?' + base override':''}: ${options.home}\nCodex model instructions: ${options.overrideBase?'overridden':'native (unchanged)'}. Open a new Codex session.${options.hooks?' Review and trust the plugin commands in Codex /hooks.':''}\nRecovery: node scripts/install.mjs --restore --home ${JSON.stringify(options.home)}`);
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href)run().catch(error=>{console.error(`GPT with Taste: ${error.message}`);process.exitCode=1;});

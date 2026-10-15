@@ -25,33 +25,35 @@
 
 <a id="install"></a>
 
-## Install
+## Install / update
 
-Requires Node.js **22+**. The default install copies the prompt sources into your active `CODEX_HOME` (otherwise `~/.codex`). It **does not change** `config.toml`, `model_instructions_file`, or `developer_instructions`.
+Requires Node.js **22+**. The default preserves native Codex model instructions and does not edit `developer_instructions`. It installs a ready-to-copy **Chinese developer-instructions template** and a **critical, independent Advisor agent** in addition to the original prompt sources.
 
 ```sh
 git clone https://github.com/ItosEO/gpt-with-taste.git
 cd gpt-with-taste
-node scripts/install.mjs
+npm test
+node scripts/install.mjs --hooks
+node scripts/install.mjs --check
 ```
 
-To install the three optional event reminders, use `node scripts/install.mjs --hooks`. This also **preserves the native Codex model instructions**. Review and trust the three definitions under Codex Desktop **Settings → Hooks** (or `/hooks`), and start a new session.
+After installation, manually merge [the Chinese developer template](prompts/developer.zh-CN.toml) into the existing top-level `developer_instructions` of `~/.codex/config.toml`, without duplicating the TOML key. The installer copies the template to `~/.codex/prompts/gpt-with-taste/developer.zh-CN.toml` but **never** writes your developer instructions. It also installs `~/.codex/agents/advisor.toml`, a read-only technical review role that actively attempts to falsify assumptions instead of rubber-stamping decisions.
 
-Add your own selected Taste guidance manually to the **existing** top-level `developer_instructions` value in `~/.codex/config.toml` (do not create a duplicate TOML key). For example:
+The original three Hook events and matchers stay unchanged. In Codex Desktop **Settings → Hooks** (or `/hooks`), review and trust the installed plugin definitions, then open a new session.
 
-```toml
-developer_instructions = """
-Make ordinary decisions independently within the user's authorization.
-Prefer maintainable code, meaningful checks and clear, direct explanations.
-Preserve material uncertainty, evidence and important limitations.
-"""
+**Update an existing installation** after obtaining new sources:
+
+```sh
+git pull --ff-only
+npm test
+node scripts/install.mjs --update --dry-run
+node scripts/install.mjs --update
+node scripts/install.mjs --check
 ```
 
-If you explicitly want the original full replacement behavior, run `node scripts/install.mjs --override-base` (optionally with `--hooks`). This sets `model_instructions_file` to the bundled main prompt. Upgrading an **existing** full-replacement installation to native mode requires `--restore` first, followed by a fresh install without `--override-base`.
+`--update` preserves the existing Hooks and optional base-override state, upgrades installed files and adds the Advisor and template if missing. It does not fetch Git commits itself. An existing custom `advisor.toml` is never overwritten without explicit `--replace-managed`.
 
-Use `--dry-run` to preview, `--check` to validate installed files, and `--restore` to undo the installer-managed changes. Keep the clone and its private `.gpt-with-taste/install-receipt.json` for restoration. Existing user configuration, permissions, MCP servers, roles, and `AGENTS.md` are preserved.
-
-Full details: [installation](docs/install.md), [recovery](docs/recovery.md) and [source map](docs/prompt-map.md).
+A full base-instructions replacement is **only** available with `--override-base`. Restoring uses `node scripts/install.mjs --restore` from this same clone and Codex home. Full details: [installation](docs/install.md), [recovery](docs/recovery.md), and [prompt map](docs/prompt-map.md).
 
 ---
 
