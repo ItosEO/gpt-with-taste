@@ -183,3 +183,146 @@ test('generated compatibility prompts install, check and restore through the exi
   await call(['--restore']);
   await assert.rejects(fs.access(path.join(home, 'config.toml')), {code: 'ENOENT'});
 });
+
+const authorTrace = /<!--\s*Generated from recipe\/|recipe\/manifest\.json|adapters\/[\w-]+\/build\.mjs|Edit recipe\/|node scripts\/build\.mjs|source gpt-with-taste 0\.1\.0/;
+const assertCleanContext = value => assert.doesNotMatch(JSON.stringify(value) ?? '', authorTrace);
+
+function assertBehaviorExports(files, {meta, texts}) {
+  for (const target of ['codex', 'kiki', 'pi', 'omp'])
+    for (const key of TEXT_KEYS)
+      assert.equal(content(files, `dist/${target}/${meta.texts[key]}`), texts[key]);
+  for (const name of ['main', 'sub', 'user-steer', 'sub-steer', 'agent-steer']) {
+    const key = TEXT_KEYS.find(key => meta.texts[key] === `${name}.md`);
+    assert.equal(content(files, `prompts/${name}.md`), texts[key]);
+  }
+  const legacy = 'dist/kiki/sol-astra/';
+  for (const pack of meta.compatibility.kiki.packages)
+    for (const key of ['main', 'independent']) assert.equal(content(files, legacy + pack[key]), texts[key]);
+  for (const [key, name] of Object.entries({sub: 'sol-astra-sub.md', userSteer: 'sol-astra-main-steering.md',
+    subSteer: 'sol-astra-sub-steering.md', agentSteer: 'sol-astra-main-agent-steering.md'}))
+    assert.equal(content(files, legacy + name), texts[key]);
+  for (const key of ['main', 'independent']) assert.equal(content(files, `dist/claude/${meta.texts[key]}`), texts[key]);
+  for (const directory of ['plugin', 'prompt-only']) {
+    const prefix = `dist/claude/${directory}/`;
+    const agent = content(files, prefix + 'agents/taste-worker.md');
+    assert.equal(agent.slice(agent.indexOf('\n---\n') + 6), texts.sub);
+    assert.equal(content(files, prefix + 'texts/sub.md'), texts.sub);
+  }
+  for (const key of ['userSteer', 'subSteer', 'agentSteer'])
+    assert.equal(content(files, `dist/claude/plugin/texts/${meta.texts[key]}`), texts[key]);
+  assert.deepEqual(JSON.parse(content(files, 'dist/dsh/texts.json')), texts);
+}
+
+test('model-facing exports contain only complete behavior; provenance stays in sidecars', async () => {
+  const recipe = await loadRecipe(repo), files = await compile(repo);
+  assertBehaviorExports(files, recipe);
+  for (const [file, bytes] of files)
+    if ((file.endsWith('.md') && !file.endsWith('/PROVENANCE.md')) || file === 'dist/dsh/texts.json')
+      assertCleanContext(bytes.toString());
+  for (const target of TARGETS) assert.match(content(files, `dist/${target}/build-manifest.json`), /recipe\/manifest\.json/);
+});
+
+test('behavior sources are exported verbatim, including whitespace and literal user comments', async t => {
+  const root = await fixture(t), {meta} = await loadRecipe(root), texts = {};
+  for (const key of TEXT_KEYS) {
+    texts[key] = ` \t\r\n# User-owned ${key}\r\n\r\nKeep this literal: <!-- Generated from my example. -->\r\n  tail\t \r\n\r\n`;
+    await fs.writeFile(path.join(root, 'recipe', meta.texts[key]), texts[key]);
+  }
+  assert.deepEqual((await loadRecipe(root)).texts, texts);
+  assertBehaviorExports(await compile(root), {meta, texts});
+});
+
+test('actual generated callbacks and simulated provider payloads keep author metadata out of model context', async t => {
+  const root = await fixture(t), {texts} = await loadRecipe(root), files = await run([], root);
+  const {pathToFileURL} = await import('node:url');
+  const moduleAt = relative => import(pathToFileURL(path.join(root, relative)).href);
+  const wrapped = (key, tag = 'gpt-with-taste') => `<${tag}>\n${texts[key].trim()}\n</${tag}>`;
+
+  const {handleHook} = await import('../hooks/steer.mjs');
+  for (const [event, route, key] of [
+    [{hook_event_name: 'UserPromptSubmit'}, 'user', 'userSteer'],
+    [{hook_event_name: 'SubagentStart', agent_id: 'child'}, 'sub', 'subSteer'],
+    [{hook_event_name: 'PostToolUse', tool_name: 'wait_agent',
+      tool_response: {timed_out: false, status: {child: {completed: 'done'}}}}, 'agent', 'agentSteer'],
+  ]) {
+    const output = handleHook(event, path.join(root, 'prompts'));
+    assert.equal(output.hookSpecificOutput.additionalContext, wrapped(key, `gpt-with-taste-${route}-steer`));
+    assertCleanContext(output);
+  }
+
+  const claude = await moduleAt('dist/claude/plugin/scripts/hook.mjs');
+  for (const [event, expected] of [
+    [{hook_event_name: 'UserPromptSubmit'}, texts.userSteer],
+    [{hook_event_name: 'SubagentStart', agent_type: 'Explore'}, `${texts.sub}\n\n${texts.subSteer}`],
+    [{hook_event_name: 'PostToolUse', tool_name: 'Agent', tool_response: {status: 'completed'}}, texts.agentSteer],
+  ]) {
+    const output = await claude.route(event);
+    assert.equal(output.hookSpecificOutput.additionalContext, expected);
+    assertCleanContext(output);
+  }
+  const promptOnly = await moduleAt('dist/claude/prompt-only/scripts/hook.mjs');
+  const child = await promptOnly.route({hook_event_name: 'SubagentStart', agent_type: 'Explore'}, {mode: 'prompts'});
+  assert.equal(child.hookSpecificOutput.additionalContext, texts.sub);
+  assertCleanContext(child);
+
+  // Exercise the emitted runtimes with native callback-shaped inputs, without a model/provider.
+  for (const target of ['pi', 'omp']) {
+    const runtime = await moduleAt(`dist/${target}/runtime.mjs`);
+    for (const role of ['main', 'sub', 'independent']) {
+      const callbacks = new Map();
+      const api = {on: (name, callback) => callbacks.set(name, callback), registerCommand() {}};
+      runtime.createTasteExtension({role, completedResultTypes: ['fixture:completed']})(api);
+      const ctx = {model: {provider: 'openai', id: 'gpt-fixture'},
+        agent: {kind: role === 'sub' ? 'sub' : 'main'}, sessionManager: {getBranch: () => []}};
+      const system = {role: 'system', content: 'HOST', sections: {host: 'HOST'}};
+      const user = {role: 'user', content: 'Continue', timestamp: 1};
+      const result = target === 'pi'
+        ? {role: 'custom', customType: 'fixture:completed', content: 'Result', timestamp: 2}
+        : {role: 'custom', customType: 'async-result', attribution: 'agent', content: 'Result', timestamp: 2,
+          details: {jobs: [{type: 'task', status: 'completed'}]}};
+      let projected;
+      if (target === 'pi') {
+        projected = callbacks.get('context_with_system')({messages: [system, user, result]}, ctx);
+        assert.equal(projected.messages[0].sections.gpt_with_taste, wrapped(role));
+      } else {
+        const prepared = callbacks.get('before_agent_start')({systemPrompt: ['HOST']}, ctx);
+        assert.deepEqual(prepared.systemPrompt, ['HOST', wrapped(role)]);
+        assertCleanContext(prepared);
+        projected = callbacks.get('context')({messages: [system, user, result]}, ctx);
+        const completed = callbacks.get('tool_result')({toolName: 'task', isError: false,
+          details: {results: [{exitCode: 0}]}}, ctx);
+        assert.deepEqual(completed, role === 'main' ? {additionalContext: texts.agentSteer.trim()} : undefined);
+        assertCleanContext(completed);
+      }
+      const steers = projected.messages.filter(message => message.customType === 'gpt-with-taste:steer');
+      const expected = role === 'independent' ? [] : role === 'sub' ? [['sub', 'subSteer']] : [['user', 'userSteer'], ['agent', 'agentSteer']];
+      assert.deepEqual(steers.map(message => message.content), expected.map(([route, key]) => wrapped(key, `gpt-with-taste-${route}-steer`)));
+      assertCleanContext(projected);
+      const payload = callbacks.get('before_provider_request')({payload: {model: 'gpt-fixture', instructions: 'HOST', input: []}}, ctx);
+      assert.equal(payload.instructions, `HOST\n\n${wrapped(role)}`);
+      assertCleanContext(payload);
+    }
+  }
+
+  // Minimal SDK boundary stub: run the generated DSH callbacks, retaining their own message construction.
+  const sdk = path.join(root, 'dist/dsh/node_modules/@deepseek-ai/dsh-llm');
+  await fs.mkdir(sdk, {recursive: true});
+  await fs.writeFile(path.join(sdk, 'package.json'), JSON.stringify({type: 'module', exports: './index.mjs'}));
+  await fs.writeFile(path.join(sdk, 'index.mjs'), 'export const createUserMessage = value => value;\n');
+  const dsh = await moduleAt('dist/dsh/index.mjs');
+  for (const role of ['main', 'sub', 'independent']) {
+    let section, callback;
+    await dsh.apply({systemPrompt: {section: value => { section = value; }},
+      on: (_event, value) => { callback = value; }}, {rootRole: role === 'independent' ? 'independent' : 'main'});
+    const agent = {session: {header: {origin: role === 'sub' ? 'subagent' : 'main'}}};
+    assert.equal(section.text({agent}), texts[role]);
+    const input = [{source: {kind: 'user'}, content: [{type: 'text', text: 'Continue'}]},
+      {source: {kind: 'subagent-report'}, content: [{type: 'text', text: 'Result'}]}];
+    const output = await callback({agent}, async () => ({kind: 'enter', messages: input}));
+    const added = output.messages.filter(message => message.source.kind === 'plugin');
+    const expected = role === 'independent' ? [] : role === 'sub' ? [texts.subSteer, texts.subSteer] : [texts.userSteer, texts.agentSteer];
+    assert.deepEqual(added.map(message => message.content[0].text), expected);
+    assertCleanContext({system: section.text({agent}), messages: output.messages});
+  }
+  assertBehaviorExports(files, {meta: (await loadRecipe(root)).meta, texts});
+});

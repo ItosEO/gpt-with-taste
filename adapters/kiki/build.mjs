@@ -2,9 +2,7 @@ import {markdown, TEXT_KEYS} from '../../src/build.mjs';
 
 const quote = value => JSON.stringify(value);
 function recipe(meta, {id, name, version, main, sub, independent, userSteer, subSteer, agentSteer}) {
-  return `# Generated from recipe/manifest.json and recipe/*.md by adapters/kiki/build.mjs.
-# Edit recipe/, then run node scripts/build.mjs.
-schema_version = 1
+  return `schema_version = 1
 id = ${quote(id)}
 name = ${quote(name)}
 version = ${quote(version)}

@@ -23,15 +23,16 @@ export async function loadRecipe(root) {
   const texts = {};
   for (const key of TEXT_KEYS) {
     const source = `recipe/${meta.texts[key]}`;
-    const text = (await fs.readFile(path.join(root, source), 'utf8')).replaceAll('\r\n', '\n');
+    const text = await fs.readFile(path.join(root, source), 'utf8');
     if (!text.trim()) throw new Error(`Empty author source: ${source}`);
-    texts[key] = text.trimEnd() + '\n';
+    texts[key] = text;
   }
   return {meta, texts};
 }
 
 export function markdown(meta, texts, target, key) {
-  return `<!-- Generated from recipe/${meta.texts[key]} + recipe/manifest.json by adapters/${target}/build.mjs; source ${meta.id} ${meta.version}. Edit recipe/, then run node scripts/build.mjs. -->\n\n${texts[key]}`;
+  // Keep the adapter interface stable; provenance belongs in build-manifest.json.
+  return texts[key];
 }
 
 export async function compile(root, targets = TARGETS) {

@@ -1,5 +1,3 @@
-<!-- Generated from recipe/independent.md + recipe/manifest.json by adapters/codex/build.mjs; source gpt-with-taste 0.1.0. Edit recipe/, then run node scripts/build.mjs. -->
-
 # GPT with Taste — Independent
 
 ## Working principles

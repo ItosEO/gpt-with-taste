@@ -35,7 +35,7 @@ node scripts/build.mjs --target claude --check
 
 Repeat `--target` to select several. A targeted build loads only those adapters. `--check` compares expected bytes with the explicit output list and reports stale or missing artifacts without writing.
 
-Each `dist/<harness>/build-manifest.json` records the author paths, adapter, source version, and generated files. For the managed Kiki operations checkout, its `build-sol-astra.mjs` bridge checks this same compiler output before mirroring the compatibility files.
+Model-facing Markdown and text resources preserve the behavior source verbatim. Author paths, source versions, generator names, and rebuild instructions belong in sidecar metadata, separate from prompt bodies and callback context. Each `dist/<harness>/build-manifest.json` records the author paths, adapter, source version, and generated files; adapter-specific `PROVENANCE.md` files retain transport attribution. For the managed Kiki operations checkout, its `build-sol-astra.mjs` bridge checks this same compiler output before mirroring the compatibility files.
 
 ## Add a harness
 
