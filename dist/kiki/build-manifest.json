@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "recipe": {
+    "id": "gpt-with-taste",
+    "version": "0.1.0",
+    "manifest": "recipe/manifest.json"
+  },
+  "target": "kiki",
+  "adapter": "adapters/kiki/build.mjs",
+  "sources": {
+    "main": "recipe/main.md",
+    "sub": "recipe/sub.md",
+    "independent": "recipe/independent.md",
+    "userSteer": "recipe/user-steer.md",
+    "subSteer": "recipe/sub-steer.md",
+    "agentSteer": "recipe/agent-steer.md"
+  },
+  "files": [
+    "dist/kiki/agent-steer.md",
+    "dist/kiki/build-manifest.json",
+    "dist/kiki/independent.md",
+    "dist/kiki/main.md",
+    "dist/kiki/recipe.toml",
+    "dist/kiki/sol-astra/astra.toml",
+    "dist/kiki/sol-astra/gpt-6-astra-independent.md",
+    "dist/kiki/sol-astra/gpt-6-astra-main.md",
+    "dist/kiki/sol-astra/gpt-6.1-sol-independent.md",
+    "dist/kiki/sol-astra/gpt-6.1-sol-main.md",
+    "dist/kiki/sol-astra/mapping.json",
+    "dist/kiki/sol-astra/sol-astra-main-agent-steering.md",
+    "dist/kiki/sol-astra/sol-astra-main-steering.md",
+    "dist/kiki/sol-astra/sol-astra-sub-steering.md",
+    "dist/kiki/sol-astra/sol-astra-sub.md",
+    "dist/kiki/sol-astra/sol.toml",
+    "dist/kiki/sub-steer.md",
+    "dist/kiki/sub.md",
+    "dist/kiki/user-steer.md"
+  ]
+}

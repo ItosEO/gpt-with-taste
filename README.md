@@ -9,12 +9,13 @@
 </picture>
 
 <p align="center">
-  A drop-in behavioral recipe for Codex: make ordinary decisions, digest complexity, and deliver work with engineering and visual craft.<br>
+  A drop-in behavioral recipe across coding harnesses: make ordinary decisions, digest complexity, and deliver work with engineering and visual craft.<br>
   Built for the GPT reasoning family, especially GPT-6.1 Sol and GPT-6 Astra. Replies follow the language you write in.
 </p>
 
 <p align="center">
-  <a href="#install">Install</a> ·
+  <a href="#harnesses">Harnesses</a> ·
+  <a href="#install">Install Codex</a> ·
   <a href="#what-changes">What changes</a> ·
   <a href="#featured-case">Comparison</a> ·
   <a href="#how-it-works">How it works</a> ·
@@ -23,9 +24,28 @@
 
 ---
 
+<a id="harnesses"></a>
+
+## Harnesses
+
+GPT with Taste compiles from a single behavioral recipe into native instructions and event steering for each supported host:
+
+| Harness | Integration | Setup Guide |
+| --- | --- | --- |
+| **OpenAI Codex** | Native model instructions & hooks overlay | [docs/install.md](docs/install.md) (or quick start below) |
+| **Claude Code** | Main instructions append & native plugin (Sub + 3 Steer) | [docs/harnesses/claude.md](docs/harnesses/claude.md) |
+| **Kiki** | Native Recipe (general bundle & Sol/Astra compat) | [docs/harnesses/kiki.md](docs/harnesses/kiki.md) |
+| **Pi** | Request-local extension with payload guard | [docs/harnesses/pi.md](docs/harnesses/pi.md) |
+| **Oh My Pi (OMP)** | Native identity-aware extension | [docs/harnesses/omp.md](docs/harnesses/omp.md) |
+| **DeepSeek Harness (dsh)** | Native Cordis plugin with request-local steer | [docs/harnesses/dsh.md](docs/harnesses/dsh.md) |
+
+Running in another host? See [docs/harnesses/porting.md](docs/harnesses/porting.md). Maintainers edit the single English authoring source in `recipe/` and compile across targets: see [docs/authoring.md](docs/authoring.md).
+
+---
+
 <a id="install"></a>
 
-## Install
+## Install · Codex
 
 With Node.js 22 or newer installed:
 
@@ -81,10 +101,10 @@ Inspect full inputs, generated documents, and run conditions: [Task & run condit
 
 ## How it works
 
-1. **The system prompt sets standing priorities.** It covers judgment, execution, collaboration, and craft. The instructions are English; replies follow your latest language.
-2. **Steer refreshes priorities at supported events.** The local plugin sends user reminders to main, scoped reminders to children, and input-consumption reminders to main after a supported wait result. When the client emits paired startup events, the child receives one initial reminder. [Installation details](docs/install.md#add-optional-per-turn-steering) cover the events and client entry points.
+1. **The system prompt sets standing priorities.** It covers judgment, execution, collaboration, and craft across hosts. The instructions are English; replies follow your latest language.
+2. **Steer refreshes priorities at supported events.** Using local hooks, extensions, or native recipe events, reminders route user context to main, scoped reminders to delegated agents, and input-consumption guidance to main upon receiving collaborator results.
 
-`prompts/sub.md` is included for roles you choose. Main and sub prompts each contain the complete behavior; `--hooks` installs all three reminder routes.
+Standalone prompt definitions provide the complete behavior for each agent role; supported harnesses connect the matching reminder paths.
 
 ---
 
@@ -97,5 +117,5 @@ Inspect full inputs, generated documents, and run conditions: [Task & run condit
 ---
 
 <p align="center">
-  <a href="LICENSE">MIT License</a> · Community friend link: <a href="https://linux.do/">Linux DO</a>
+  <a href="LICENSE">MIT License</a> · Credits: <a href="https://github.com/SpadeLushen/pi-gpt-with-taste">SpadeLushen/pi-gpt-with-taste</a> · Community friend link: <a href="https://linux.do/">Linux DO</a>
 </p>

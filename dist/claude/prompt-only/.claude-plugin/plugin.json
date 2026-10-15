@@ -1,0 +1,9 @@
+{
+  "name": "gpt-with-taste",
+  "version": "0.1.0",
+  "description": "Better judgment. Better taste. Less ceremony.",
+  "author": {
+    "name": "NB Corp"
+  },
+  "license": "MIT"
+}

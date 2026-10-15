@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "recipe": {
+    "id": "gpt-with-taste",
+    "version": "0.1.0",
+    "manifest": "recipe/manifest.json"
+  },
+  "target": "claude",
+  "adapter": "adapters/claude/build.mjs",
+  "sources": {
+    "main": "recipe/main.md",
+    "sub": "recipe/sub.md",
+    "independent": "recipe/independent.md",
+    "userSteer": "recipe/user-steer.md",
+    "subSteer": "recipe/sub-steer.md",
+    "agentSteer": "recipe/agent-steer.md"
+  },
+  "files": [
+    "dist/claude/build-manifest.json",
+    "dist/claude/independent.md",
+    "dist/claude/main.md",
+    "dist/claude/plugin/.claude-plugin/plugin.json",
+    "dist/claude/plugin/agents/taste-worker.md",
+    "dist/claude/plugin/hooks/hooks.json",
+    "dist/claude/plugin/scripts/hook.mjs",
+    "dist/claude/plugin/texts/agent-steer.md",
+    "dist/claude/plugin/texts/sub-steer.md",
+    "dist/claude/plugin/texts/sub.md",
+    "dist/claude/plugin/texts/user-steer.md",
+    "dist/claude/prompt-only/.claude-plugin/plugin.json",
+    "dist/claude/prompt-only/agents/taste-worker.md",
+    "dist/claude/prompt-only/hooks/hooks.json",
+    "dist/claude/prompt-only/scripts/hook.mjs",
+    "dist/claude/prompt-only/texts/sub.md"
+  ]
+}

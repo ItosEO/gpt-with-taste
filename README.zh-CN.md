@@ -9,13 +9,14 @@
 </picture>
 
 <p align="center">
-  一套即装即用的 Codex 行为配方：作出常规判断、消化复杂度，并以工程与视觉审美交付工作。<br>
+  一套跨宿主、即装即用的 GPT 行为配方：作出常规判断、消化复杂度，并以工程与视觉审美交付工作。<br>
   面向 GPT 推理家族，尤其是 GPT-6.1 Sol 与 GPT-6 Astra；回复跟随你使用的语言。<br>
   <em>Better judgment. Better taste. Less ceremony.</em>
 </p>
 
 <p align="center">
-  <a href="#install">安装</a> ·
+  <a href="#harnesses">宿主适配</a> ·
+  <a href="#install">安装 Codex</a> ·
   <a href="#what-changes">改变什么</a> ·
   <a href="#featured-case">对照示例</a> ·
   <a href="#how-it-works">工作机制</a> ·
@@ -24,9 +25,28 @@
 
 ---
 
+<a id="harnesses"></a>
+
+## 宿主适配
+
+GPT with Taste 由单一行为配方源编译生成，为各支持宿主提供原生指令与事件提醒：
+
+| 宿主 | 接入形式 | 配置说明 |
+| --- | --- | --- |
+| **OpenAI Codex** | 原生模型指令与 hooks 叠加层 | [docs/install.md](docs/install.md)（或见下方快速安装） |
+| **Claude Code** | Main 指令追加与原生插件（Sub + 3 路 Steer） | [docs/harnesses/claude.md](docs/harnesses/claude.md) |
+| **Kiki** | 原生 Recipe（通用包与 Sol/Astra 兼容包） | [docs/harnesses/kiki.md](docs/harnesses/kiki.md) |
+| **Pi** | 带 payload 防护的请求级扩展 | [docs/harnesses/pi.md](docs/harnesses/pi.md) |
+| **Oh My Pi (OMP)** | 原生身份感知扩展 | [docs/harnesses/omp.md](docs/harnesses/omp.md) |
+| **DeepSeek Harness (dsh)** | 原生 Cordis 插件与请求级提醒 | [docs/harnesses/dsh.md](docs/harnesses/dsh.md) |
+
+要在其他宿主中使用？参考 [docs/harnesses/porting.md](docs/harnesses/porting.md)。维护者在 `recipe/` 中维护单一英文作者源，通过编译器适配各个目标：详见 [docs/authoring.md](docs/authoring.md)。
+
+---
+
 <a id="install"></a>
 
-## 安装
+## 安装 · Codex
 
 先安装 Node.js 22 或更高版本，然后运行：
 
@@ -82,10 +102,10 @@ GPT with Taste 把判断力用在结果上：作出合理选择、保留有据�
 
 ## 工作机制
 
-1. **系统提示词设定长期优先级。** 它覆盖判断、执行、协作与审美；提示词本体为英文，回复跟随你最新使用的语言。
-2. **Steer 在受支持的事件处重新强调对应行为。** 本地插件把用户提醒交给主控，把范围内执行提醒交给子 Agent，并在受支持的等待结果后送入输入消费提醒。若客户端派发配对的启动事件，子 Agent 只收到一份初始提醒。具体事件和客户端入口见[安装说明](docs/install.md#add-optional-per-turn-steering)。
+1. **系统提示词设定长期优先级。** 跨宿主覆盖判断、执行、协作与审美；提示词本体为英文，回复跟随你最新使用的语言。
+2. **Steer 在受支持的事件处重新强调对应行为。** 通过本地 hooks、extensions 或 native Recipe 事件，把用户提醒传递给主控，把范围内执行提醒传递给受派 Agent，并在收到协作结果后向主控补充输入消费提醒。
 
-`prompts/sub.md` 留给你指定的角色使用。main 与 sub 提示词各自包含完整行为；`--hooks` 安装这三条提醒路线。
+各角色的提示词均包含完整行为约定；受支持的宿主会接入对应的提醒链路。
 
 ---
 
@@ -98,5 +118,5 @@ GPT with Taste 把判断力用在结果上：作出合理选择、保留有据�
 ---
 
 <p align="center">
-  <a href="LICENSE">MIT 许可证</a> · 社区友链：<a href="https://linux.do/">Linux DO</a>
+  <a href="LICENSE">MIT 许可证</a> · 致谢：<a href="https://github.com/SpadeLushen/pi-gpt-with-taste">SpadeLushen/pi-gpt-with-taste</a> · 社区友链：<a href="https://linux.do/">Linux DO</a>
 </p>

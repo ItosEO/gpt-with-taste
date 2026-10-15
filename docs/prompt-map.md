@@ -6,13 +6,14 @@ The default product is the complete main prompt. One source serves the GPT model
 
 | Source | Reader and placement | Job |
 | --- | --- | --- |
-| [`prompts/main.md`](../prompts/main.md) | The main Codex agent's instruction context | Own the user's result, make decisions, execute or delegate, integrate evidence, and deliver finished work. |
-| [`prompts/sub.md`](../prompts/sub.md) | A delegated agent's instruction context, alongside its actual role and assignment | Own the complete scoped result while preserving role, leaf, tool, support, and write boundaries. |
-| [`prompts/user-steer.md`](../prompts/user-steer.md) | Optional reminder near each submitted user request to the main agent | Reconnect the request to the current goal, make ordinary choices, preserve existing usage, and select reader-useful content. |
-| [`prompts/sub-steer.md`](../prompts/sub-steer.md) | Optional reminder with input to a delegated agent | Continue the scoped assignment, finish local work, and report only real early coordination needs. |
-| [`prompts/agent-steer.md`](../prompts/agent-steer.md) | Optional reminder when the main agent receives a collaborator message or task result | Reconcile evidence and decide before routing only the missing action-changing information. |
+| [`recipe/main.md`](../recipe/main.md) | The main agent's instruction context | Own the user's result, make decisions, execute or delegate, integrate evidence, and deliver finished work. |
+| [`recipe/sub.md`](../recipe/sub.md) | A delegated agent's instruction context, alongside its actual role and assignment | Own the complete scoped result while preserving role, leaf, tool, support, and write boundaries. |
+| [`recipe/independent.md`](../recipe/independent.md) | An independent host invocation without a parent | Apply role-neutral work principles and complete the current assignment. |
+| [`recipe/user-steer.md`](../recipe/user-steer.md) | Optional reminder near each submitted user request to the main agent | Reconnect the request to the current goal, make ordinary choices, preserve existing usage, and select reader-useful content. |
+| [`recipe/sub-steer.md`](../recipe/sub-steer.md) | Optional reminder with input to a delegated agent | Continue the scoped assignment, finish local work, and report only real early coordination needs. |
+| [`recipe/agent-steer.md`](../recipe/agent-steer.md) | Optional reminder when the main agent receives a collaborator message or task result | Reconcile evidence and decide before routing only the missing action-changing information. |
 
-The files are literal English instruction sources. They require no base-prompt placeholder, private path, model alias, or hidden companion file. English source does not fix the response language: the main and subagent prompts explicitly follow the user's latest conversational language, including a switch, while project artifacts follow project conventions and explicit artifact requirements. An explicitly chosen persona overrides the default warm, lively, opinionated voice.
+These are the complete English author sources. [The compiler](authoring.md) generates `dist/<harness>/` and the existing Codex `prompts/` paths from them. Each adapter supplies the harness's native loading and event interfaces; the shared instructions follow the current harness rather than naming another host's tools. English source does not fix the response language: the main and subagent prompts explicitly follow the user's latest conversational language, including a switch, while project artifacts follow project conventions and explicit artifact requirements. An explicitly chosen persona overrides the default warm, lively, opinionated voice.
 
 ## Where the capabilities live
 
@@ -47,7 +48,7 @@ The files are literal English instruction sources. They require no base-prompt p
 
 ## Codex integration decisions
 
-The sources refer to the current Codex tools, schemas, role restrictions, and event behavior rather than naming tools from another host. They do not assume a message wakes or interrupts a recipient, grants approval, or proves consumption. Notification-driven continuation applies when the runtime guarantees completion notifications; waiting follows the supported tool contract and a real dependency. A child resolves its promised dependencies before its final result.
+The Codex adapter retains the existing instruction-file and local-plugin entry points. Shared behavior follows the current runtime's tools, role restrictions, and event semantics. Notification-driven continuation applies when the runtime guarantees completion notifications; waiting follows the supported tool contract and a real dependency. A child resolves its promised dependencies before its final result.
 
 Selecting [optional hooks](install.md#add-optional-per-turn-steering) assembles the single author sources into a local marketplace and installs `gpt-with-taste@gpt-with-taste-local` through the normal Codex plugin CLI. The plugin configures three source-specific routes:
 
