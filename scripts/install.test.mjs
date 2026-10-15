@@ -26,8 +26,9 @@ async function fixture(t){
     async remove(){calls.push('remove');state.plugin=null;await fs.rm(path.join(home,'plugins','cache',MARKET),{recursive:true,force:true});},
     async removeMarket(){calls.push('removeMarket');state.market=null;},
   };
-  const call=(...args)=>run(['--home',home,...args],root,{plugin:api});
-  return {root,home,call,state,calls,api};
+  const services={plugin:api,checkUpdates:async()=>({status:'unavailable',reason:'offline fixture'})};
+  const call=(...args)=>run(['--home',home,...args],root,services);
+  return {root,home,call,state,calls,api,services};
 }
 const original='\uFEFF# local config\r\nmodel = "existing-gpt"\r\nmodel_reasoning_effort = "high"\r\nmodel_instructions_file = \'old/main.md\' # preserve\r\n[model_providers.private]\r\nexperimental_bearer_token = "fixture-secret-not-real"\r\n[agents.worker]\r\nconfig_file = "roles/worker.toml"\r\n[features]\r\nmulti_agent = true\r\n[mcp_servers.local]\r\ncommand = "fixture"\r\n';
 test('prompt-only preserves all other bytes and hooks; no Codex prerequisite; original baseline survives updates',async t=>{
@@ -146,4 +147,73 @@ test('Windows generated command invokes Node with plugin paths as data and keeps
     let stdout='',stderr='';child.stdout.on('data',c=>stdout+=c);child.stderr.on('data',c=>stderr+=c);child.on('error',reject);child.on('close',code=>resolve({code,stdout,stderr}));child.stdin.end('{}');
   });
   assert.equal(missing.code,1);assert.equal(missing.stdout,'');assert.match(missing.stderr,/\[LAUNCH_FAILURE\].*PLUGIN_ROOT/);
+});
+
+const sourceA={kind:'official',commit:'a'.repeat(40),dirty:false,version:'999-local'};
+const sourceB={kind:'official',commit:'b'.repeat(40),dirty:false,version:'0.1.0'};
+test('manual update check is read-only, separates checkout and installed prompts/Hooks, and preserves Hooks on prompt-only refresh',async t=>{
+  const f=await fixture(t);let selected=sourceA,seen;
+  f.services.sourceIdentity=async()=>selected;
+  f.services.checkUpdates=async sources=>{seen=structuredClone(sources);return {status:'unavailable',reason:'offline fixture'};};
+  await f.call('--check-updates');assert.equal(await exists(receipt(f.root)),false);assert.equal(await exists(path.join(f.home,'config.toml')),false);
+  await f.call('--hooks');const baseline=JSON.parse(await fs.readFile(receipt(f.root)));
+  assert.deepEqual(baseline.source,{prompts:sourceA,hooks:sourceA});
+  selected=sourceB;await put(path.join(f.root,'prompts/main.md'),'NEW PROMPT');
+  const before=await fs.readFile(receipt(f.root)),config=await fs.readFile(path.join(f.home,'config.toml'));
+  await f.call('--check-updates');assert.deepEqual(seen,{Checkout:sourceB,'Installed prompts':sourceA,'Installed Hooks':sourceA});
+  assert.deepEqual(await fs.readFile(receipt(f.root)),before);assert.deepEqual(await fs.readFile(path.join(f.home,'config.toml')),config);
+  f.calls.length=0;await f.call();assert.deepEqual(f.calls,[]);
+  const updated=JSON.parse(await fs.readFile(receipt(f.root)));assert.deepEqual(updated.source,{prompts:sourceB,hooks:sourceA});
+  await f.call('--check-updates');assert.deepEqual(seen['Installed Hooks'],sourceA);assert.deepEqual(seen['Installed prompts'],sourceB);
+  assert.deepEqual(updated.plugin,baseline.plugin);assert.equal(updated.config.before,baseline.config.before);
+  await f.call('--restore');assert.equal(await exists(path.join(f.home,'config.toml')),false);
+});
+test('failed refresh retains installed provenance and original recovery baseline; first failed install records no source',async t=>{
+  const f=await fixture(t);let selected=sourceA;f.services.sourceIdentity=async()=>selected;
+  await f.call('--hooks');const baseline=JSON.parse(await fs.readFile(receipt(f.root)));
+  selected=sourceB;await put(path.join(f.root,'prompts/main.md'),'NEW MAIN');const install=f.api.install;
+  f.api.install=async root=>{await install(root);throw new Error('PROVENANCE FAILURE');};
+  await assert.rejects(f.call('--hooks'),/PROVENANCE FAILURE/);
+  const pending=JSON.parse(await fs.readFile(receipt(f.root)));assert.equal(pending.status,'applying');assert.deepEqual(pending.source,baseline.source);assert.equal(pending.config.before,baseline.config.before);
+  await f.call('--restore');assert.equal(await exists(path.join(f.home,'config.toml')),false);
+  await assert.rejects(f.call('--hooks'),/PROVENANCE FAILURE/);assert.equal(JSON.parse(await fs.readFile(receipt(f.root))).source,undefined);await f.call('--restore');
+});
+test('offline check still installs; explicit skip, integrity check, help and restore never invoke network check',async t=>{
+  const f=await fixture(t);let calls=0;
+  f.services.checkUpdates=async()=>{calls++;return {status:'unavailable',reason:'timed out after 5000 ms'};};
+  await f.call();assert.equal(calls,1);assert.equal(JSON.parse(await fs.readFile(receipt(f.root))).status,'applied');
+  f.services.checkUpdates=async()=>{throw new Error('MUST NOT CALL NETWORK');};
+  await f.call('--skip-update-check');await f.call('--check');await f.call('--help');await f.call('--restore');
+});
+test('old receipts have unknown provenance and still restore; installed drift is not reported as official-current',async t=>{
+  const f=await fixture(t);f.services.sourceIdentity=async()=>sourceA;await f.call();
+  const legacy=JSON.parse(await fs.readFile(receipt(f.root)));delete legacy.source;await put(receipt(f.root),JSON.stringify(legacy));
+  let seen;f.services.checkUpdates=async sources=>{seen=structuredClone(sources);return {status:'unavailable',reason:'offline'};};
+  await f.call('--check-updates');assert.equal(seen['Installed prompts'],undefined);await f.call('--restore');
+  await f.call();await put(path.join(f.home,'prompts/gpt-with-taste/main.md'),'USER EDIT');await f.call('--check-updates');assert.equal(seen['Installed prompts'].dirty,true);
+});
+
+test('manual update check defaults to saved home without changing install or restore defaults',async t=>{
+  const f=await fixture(t);await f.call();const before=await fs.readFile(receipt(f.root));
+  const previous=process.env.CODEX_HOME;delete process.env.CODEX_HOME;
+  const log=console.log,output=[];console.log=value=>output.push(value);
+  try{
+    await run(['--check-updates'],f.root,f.services);
+    assert.ok(output.some(value=>value.includes(`Selected Codex home: ${f.home}`)));
+    assert.ok(output.some(value=>value.includes(`--home ${JSON.stringify(f.home)}`)));
+    await assert.rejects(run(['--skip-update-check'],f.root,f.services),/Receipt belongs to another home/);
+    await assert.rejects(run(['--restore'],f.root,f.services),/Receipt belongs to another home/);
+    assert.deepEqual(await fs.readFile(receipt(f.root)),before);
+  }finally{console.log=log;if(previous===undefined)delete process.env.CODEX_HOME;else process.env.CODEX_HOME=previous;}
+});
+test('manual update check keeps explicit home and CODEX_HOME binding instead of selecting saved home',async t=>{
+  const f=await fixture(t);await f.call();const before=await fs.readFile(receipt(f.root)),wrong=path.join(f.home,'wrong-target');
+  const previous=process.env.CODEX_HOME;delete process.env.CODEX_HOME;
+  try{
+    await assert.rejects(run(['--check-updates','--home',wrong],f.root,f.services),/Receipt belongs to another home/);
+    process.env.CODEX_HOME=wrong;
+    await assert.rejects(run(['--check-updates'],f.root,f.services),/Receipt belongs to another home/);
+    await run(['--check-updates','--home',f.home],f.root,f.services);
+    assert.deepEqual(await fs.readFile(receipt(f.root)),before);
+  }finally{if(previous===undefined)delete process.env.CODEX_HOME;else process.env.CODEX_HOME=previous;}
 });

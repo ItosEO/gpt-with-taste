@@ -11,7 +11,7 @@ The installer restores the original `model_instructions_file` assignment, retain
 
 Plugin recovery removes `gpt-with-taste@gpt-with-taste-local` and its owned marketplace through Codex's normal remove commands. Review any Hook trust you approved through Codex `/hooks`; the installer does not change trust records. Prompt-only and legacy-only recovery do not require the plugin CLI.
 
-Repeated installs and source updates keep the original recovery baseline. Successful recovery marks the single `.gpt-with-taste/install-receipt.json` as restored. A later install starts a new baseline. The receipt is ignored machine-local state; keep it private and keep the clone until recovery is no longer needed.
+Repeated installs and source updates keep the original recovery baseline. The receipt's `source.prompts` and `source.hooks` entries describe successful component installations; recovery uses the original saved settings and bytes. Older receipts remain usable. Successful recovery marks the single `.gpt-with-taste/install-receipt.json` as restored. A later install starts a new baseline. Keep this private receipt and the clone until recovery is no longer needed. Restore runs locally, including when offline.
 
 ## Older Hook receipts
 

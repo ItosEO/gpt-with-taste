@@ -6,7 +6,7 @@ Start with the default prompt-only installation. It replaces Codex's built-in mo
 
 1. Install Node.js **22 or newer**, then open a terminal in this clone's root directory. No npm packages are needed. Codex must support `model_instructions_file`.
 2. Use the absolute Codex home you already use, such as `"C:/Users/you/.codex"` on Windows. Use the same path in every command.
-3. Preview, install and check:
+3. Preview, install and check. Installation and its preview first query official update metadata, with a five-second total network limit. Add `--skip-update-check` to either install command for offline use:
 
    ```sh
    node scripts/install.mjs --home "/absolute/path/to/.codex" --dry-run
@@ -76,7 +76,25 @@ Do not assume a role-level `model_instructions_file` replaces inherited Main: on
 
 ## Update or resolve a conflict
 
-Update this clone, then rerun the same install command. Include `--hooks` to refresh the assembled plugin and Codex cache. A later prompt-only install leaves the optional layer alone and does not invoke Codex. Repeated installs retain the first installation's recovery baseline.
+From the same clone, check the official source and your installed components:
+
+```sh
+node scripts/check-updates.mjs --home "/absolute/path/to/.codex"
+```
+
+`node scripts/install.mjs --check-updates --home "/absolute/path/to/.codex"` is the equivalent installer entry. Both are read-only and work without the Codex plugin CLI. Omit `--home` to use this clone's recorded installation home when `CODEX_HOME` is unset. The report separates **Checkout**, **Installed prompts** and **Installed Hooks**, and gives an install command for the recorded home and Hook selection.
+
+The check uses the latest official GitHub release when available, otherwise a clearly labeled official default-branch revision. Source identity and revisions determine the comparison; your package version is a display label. For a fork, local edits or custom commits, review upstream changes and merge the ones you want into your own source. An archive without Git or an older receipt can show an unknown source; keep its existing recovery receipt.
+
+Choose and obtain the source revision yourself, then rerun the install command shown by the check. In a clean official checkout, `git pull --ff-only` gets the current branch changes. Include `--hooks` to refresh the assembled plugin and Codex cache along with the prompts. A prompt-only install keeps the existing optional layer, and its recorded Hook source, unchanged. Repeated installs retain the first installation's recovery baseline.
+
+Installation and its preview also perform the read-only metadata check before writing. Network checks have a five-second total limit; an unavailable check leaves the chosen local installation usable. To install offline:
+
+```sh
+node scripts/install.mjs --home "/absolute/path/to/.codex" --skip-update-check
+```
+
+Add `--hooks` when refreshing an existing plugin installation. `--check` remains the local installation-integrity check; `--restore` and `--help` run locally. Changed Hook definitions go through the normal Codex review step after installation. Source records advance with successful component installations.
 
 Migration from an older receipt-managed Hook installation removes only its recorded event-and-exact-command groups before enabling the plugin. Their original values remain recoverable, and other Hooks remain in place. An old receipt can also be restored directly without new plugin sources or the plugin CLI.
 

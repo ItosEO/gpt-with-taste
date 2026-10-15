@@ -42,6 +42,8 @@ node scripts/install.mjs --hooks
 
 使用 `--hooks` 时，在 Codex Desktop 的**设置 → 钩子**中审查并信任这三个定义，也可以在交互终端输入 `/hooks`。只开启你需要的事件。安装后请**新开一个 Codex 会话**。
 
+运行 `node scripts/check-updates.mjs` 可手动检查更新。安装前也会查询官方元数据；离线安装加 `--skip-update-check`。[更新说明](docs/install.md#update-or-resolve-a-conflict)介绍已安装组件和魔改版本的处理。
+
 想交给编程助手代办，可把本仓库与 [docs/install-for-ai.md](docs/install-for-ai.md) 一起交给它。要恢复受管状态，使用 [docs/recovery.md](docs/recovery.md)；完整安装契约见 [docs/install.md](docs/install.md)。
 
 ---

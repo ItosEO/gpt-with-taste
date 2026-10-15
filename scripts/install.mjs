@@ -6,6 +6,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {keyLine, sameInstructionLine, setInstructions, restoreInstructions} from '../src/toml-overlay.mjs';
 import {parseHooks, assertHook, restoreHook, receiptHooks, retireHook} from '../src/hooks-overlay.mjs';
 import {pluginBundle, codexPlugin, assertPluginInventory, MARKET_ROOT, ID} from '../src/codex-plugin.mjs';
+import {sourceIdentity, checkUpdates, formatUpdateReport} from '../src/update-check.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RECEIPT = '.gpt-with-taste/install-receipt.json';
 const PROMPTS = new Map([['prompts/gpt-with-taste/main.md','prompts/main.md'],['prompts/gpt-with-taste/sub.md','prompts/sub.md']]);
@@ -14,10 +15,16 @@ const BUNDLE_PATHS = ['.agents/plugins/marketplace.json','plugins/gpt-with-taste
 const HELP = `GPT with Taste — Node.js 22+
   node scripts/install.mjs [--home ABSOLUTE_CODEX_HOME] [--hooks] [--dry-run]
   node scripts/install.mjs --check [--home ABSOLUTE_CODEX_HOME]
+  node scripts/install.mjs --check-updates [--home ABSOLUTE_CODEX_HOME]
   node scripts/install.mjs --restore [--home ABSOLUTE_CODEX_HOME] [--dry-run]
   --codex EXECUTABLE  Codex CLI for optional plugin install/check/restore (default: codex).
   --replace-managed  Explicitly replace conflicting managed files.
+  --skip-update-check  Install offline without the pre-install update check.
+Install checks public official GitHub metadata (5-second total network deadline).
+--check verifies installation integrity; --check, --restore and --help stay offline.
+--check-updates is read-only; it never fetches/pulls Git or installs an update.
 Default home: CODEX_HOME, otherwise ~/.codex. Default install: prompts only.
+For --check-updates only, an unselected home uses this clone's saved receipt home.
 --hooks installs the local marketplace/plugin; review its commands in Codex /hooks.
 Recovery receipt: ${RECEIPT} in this clone. Keep it until you restore.
 `;
@@ -44,18 +51,23 @@ function parse(args){
     const arg=args[i];
     if(arg==='--home'||arg==='--codex'){if(!args[i+1]||args[i+1].startsWith('--'))fail(`${arg} requires a value`);options[arg.slice(2)]=args[++i];}
     else if(arg==='--help'||arg==='-h')options.help=true;
-    else if(arg==='--check'||arg==='--restore'){if(options.mode!=='install')fail('Choose only one of --check and --restore');options.mode=arg.slice(2);}
+    else if(['--check','--restore','--check-updates'].includes(arg)){if(options.mode!=='install')fail('Choose only one of --check, --restore and --check-updates');options.mode=arg.slice(2);}
+    else if(arg==='--skip-update-check')options.skipUpdateCheck=true;
     else if(arg==='--dry-run')options.dryRun=true;
     else if(arg==='--replace-managed')options.replace=true;
     else if(arg==='--hooks')options.hooks=true;
     else fail(`Unknown argument: ${arg}`);
   }
   if(!path.isAbsolute(options.home))fail('--home / CODEX_HOME must be an absolute directory');options.home=path.resolve(options.home);
-  if(options.mode!=='install'&&(options.replace||options.hooks))fail('--hooks and --replace-managed are install options');return options;
+  if(options.mode!=='install'&&(options.replace||options.hooks||options.skipUpdateCheck))fail('--hooks, --replace-managed and --skip-update-check are install options');return options;
 }
-async function loadReceipt(file,home){
+async function loadReceipt(file,home,useSavedHome=false){
   const bytes=await read(file);if(bytes===null)return {bytes,receipt:null};let receipt;
   try{receipt=JSON.parse(decode(bytes));}catch{fail('Unreadable recovery receipt; keep it for manual recovery');}
+  if(useSavedHome){
+    if(typeof receipt.home!=='string'||!path.isAbsolute(receipt.home))fail('Receipt has no absolute Codex home; keep it for manual recovery');
+    home=receipt.home;
+  }
   const allowed=new Set([...PROMPTS.keys(),...LEGACY_FILES,...BUNDLE_PATHS.map(file=>`${MARKET_ROOT}/${file}`)]);
   if(receipt.version!==1||receipt.home!==home||!['applying','applied','restoring','restored'].includes(receipt.status)||!Array.isArray(receipt.files)||receipt.files.some(entry=>!allowed.has(entry.path))||new Set(receipt.files.map(entry=>entry.path)).size!==receipt.files.length||!receipt.config||typeof receipt.config.after!=='string'||!(receipt.config.before===null||typeof receipt.config.before==='string'))fail('Receipt belongs to another home or has an unsupported format; use its original clone and home');
   if(receipt.plugin&&(receipt.plugin.id!==ID||receipt.plugin.root!==path.join(home,MARKET_ROOT)))fail('Unsupported plugin receipt; keep it for recovery');
@@ -93,10 +105,36 @@ function restoredHooks(current,active){
   if(!state.hadHooks&&current.hooks.value.hooks&&Object.keys(current.hooks.value.hooks).length===0)delete current.hooks.value.hooks;
   return state.fileWasAbsent&&Object.keys(current.hooks.value).length===0?null:json(current.hooks.value);
 }
+async function updateReport(options,active,checkout,services){
+  const sources={Checkout:checkout},hooks=Boolean(active?.plugin||receiptHooks(active).length);
+  let integrity;
+  if(active){
+    sources['Installed prompts']=active.source?.prompts;
+    if(hooks)sources['Installed Hooks']=active.source?.hooks;
+    try{
+      if(active.status!=='applied')fail('interrupted operation; run --restore with this home');
+      await inspect(options.home,active);
+      if(active.plugin?.cacheRoot){
+        for(const entry of active.plugin.cacheFiles??[]){
+          if(!equal(await read(path.join(active.plugin.cacheRoot,entry.path)),unpack(entry.after)))fail(`plugin cache differs: ${entry.path}`);
+        }
+      }
+      integrity='managed bytes match the receipt; use --check for Codex plugin registration';
+    }catch(error){
+      integrity=error.message;
+      for(const label of Object.keys(sources).filter(label=>label!=='Checkout'))sources[label]=sources[label]?{...sources[label],dirty:true}:undefined;
+    }
+  }
+  const report=await (services.checkUpdates??checkUpdates)(sources);
+  console.log(formatUpdateReport(report,{sources,home:options.home,hooks,installation:active?.status??'no active receipt in this clone',integrity}));
+  return report;
+}
 export async function run(args=process.argv.slice(2),root=ROOT,services={}){
   if(Number(process.versions.node.split('.')[0])<22)fail('Node.js 22 or newer is required');
   const options=parse(args);if(options.help){console.log(HELP);return;}
-  const receiptPath=path.join(root,RECEIPT),saved=await loadReceipt(receiptPath,options.home),active=saved.receipt&&saved.receipt.status!=='restored'?saved.receipt:null;
+  const useSavedHome=options.mode==='check-updates'&&!args.includes('--home')&&!process.env.CODEX_HOME;
+  const receiptPath=path.join(root,RECEIPT),saved=await loadReceipt(receiptPath,options.home,useSavedHome),active=saved.receipt&&saved.receipt.status!=='restored'?saved.receipt:null;
+  if(useSavedHome&&saved.receipt)options.home=saved.receipt.home;
   const api=services.plugin??codexPlugin(options.home,options.codex??active?.plugin?.executable??'codex');
   if(options.mode==='check'){
     if(!active)fail('No active installation receipt in this clone');if(active.status!=='applied')fail('Installation was interrupted; run --restore');
@@ -119,7 +157,11 @@ export async function run(args=process.argv.slice(2),root=ROOT,services={}){
     if(current.hooks)await cas(current.hooks.file,current.hooks.bytes,hooksAfter);
     await cas(receiptPath,pending,json({...active,status:'restored'}));console.log(`Restored managed installation: ${options.home}`);return;
   }
+  const checkout=await (services.sourceIdentity??sourceIdentity)(root);
+  if(options.mode==='check-updates')return updateReport(options,active,checkout,services);
   if(active&&active.status!=='applied')fail('Previous operation was interrupted; run --restore before installing again');
+  if(options.skipUpdateCheck)console.log('Update check skipped (--skip-update-check); installing selected local source.');
+  else await updateReport(options,active,checkout,services);
   if(active)await inspect(options.home,options.hooks?active:{...active,files:active.files.filter(entry=>PROMPTS.has(entry.path)),hook:undefined,hookGroups:undefined});
   const configPath=path.join(options.home,'config.toml'),configBefore=await read(configPath),configText=decode(configBefore);
   if(active&&!sameInstructionLine(keyLine(configText),active.config.after))fail('Managed config key changed during planning; no overwrite');
@@ -157,6 +199,7 @@ export async function run(args=process.argv.slice(2),root=ROOT,services={}){
     })};
   }
   const receipt={version:1,status:'applying',home:options.home,
+    ...(active?.source?{source:active.source}:{}),
     config:{before:active?active.config.before:keyLine(configText),after:keyLine(decode(configAfter)),previous:keyLine(configText),fileWasAbsent:active?active.config.fileWasAbsent:configBefore===null},
     files:[...(active?.files.filter(entry=>!targets.has(entry.path))??[]),...files.map(item=>{const prior=active?.files.find(entry=>entry.path===item.path);return {path:item.path,before:prior?prior.before:encode(item.before),after:encode(item.after),previous:encode(item.before)};})],
     ...(plugin?{plugin}:{}),...(hooks?{hookGroups:hooks.records,hookState:hooks.state}:active?.hookGroups?{hookGroups:active.hookGroups,hookState:active.hookState}:active?.hook?{hook:active.hook}:{})};
@@ -172,7 +215,11 @@ export async function run(args=process.argv.slice(2),root=ROOT,services={}){
       for(const item of files.filter(item=>item.path.startsWith(prefix))){const target=item.path.slice(prefix.length),bytes=await read(path.join(result.installedPath,target));if(!equal(bytes,item.after))fail(`Codex installed different plugin bytes: ${target}`);receipt.plugin.cacheFiles.push({path:target,after:encode(bytes)});}
       if(!sameInstructionLine(keyLine(decode(await read(configPath))),receipt.config.after))fail('Managed config key changed during Codex installation');
     }
-    const applied={...receipt,status:'applied',config:{...receipt.config},files:receipt.files.map(item=>({...item}))};delete applied.config.previous;for(const item of applied.files)delete item.previous;
+    // Attribute only verified installed bytes, never an in-flight update or untouched Hooks.
+    for(const item of files)if(!equal(await read(item.file),item.after))fail(`Installed file changed: ${item.file}`);
+    if(!sameInstructionLine(keyLine(decode(await read(configPath))),receipt.config.after))fail('Managed config key changed during installation');
+    const source={...active?.source,prompts:checkout,...(options.hooks?{hooks:checkout}:{})};
+    const applied={...receipt,status:'applied',source,config:{...receipt.config},files:receipt.files.map(item=>({...item}))};delete applied.config.previous;for(const item of applied.files)delete item.previous;
     if(applied.hookGroups)applied.hookGroups=applied.hookGroups.map(({previous,...record})=>record);
     await cas(receiptPath,pending,json(applied));
   }catch(error){throw new Error(`${error.message}\nRecovery receipt retained. Run --restore with the same --home.`);}

@@ -5,7 +5,7 @@ Use this clone's normal installer with Node.js 22+. Do not substitute a loader, 
 ## Install the complete main prompt
 
 1. Select the user's active absolute `CODEX_HOME`, otherwise their home directory's absolute `.codex` path. Tell them the path and pass it explicitly.
-2. Read the bundled `prompts/main.md` and `prompts/sub.md`, then preview, install and check from the clone root:
+2. Read the bundled `prompts/main.md` and `prompts/sub.md`, then preview, install and check from the clone root. Installation first performs a read-only official update check with a five-second total network limit; add `--skip-update-check` for offline installation. Keep the user's chosen local source:
 
    ```sh
    node scripts/install.mjs --home "/absolute/path/to/.codex" --dry-run
@@ -48,6 +48,20 @@ Receipt-owned legacy Hook groups are migrated by exact command and event; other 
 The plugin's sub reminder is not the complete Sub prompt. Do not rely on a role-level `model_instructions_file` on the tested resumed CLI workflow: the role's developer instructions loaded, but its Sub file did not replace inherited Main base instructions.
 
 If the user requests complete Sub for a chosen role, use Codex's supported custom-role `developer_instructions` channel to include `prompts/sub.md` alongside that role's existing contract. Preserve registration, model, effort, leaf, tool and permission boundaries; do not overwrite all roles. This role composition is separate from plugin installation and outside its recovery receipt. Verify the selected child's effective instructions before reporting Sub coverage. See [role setup](install.md#use-the-complete-subagent-prompt-for-a-selected-role).
+
+## Check updates and reinstall
+
+For an update check, use the existing clone and selected home:
+
+```sh
+node scripts/check-updates.mjs --home "/absolute/path/to/.codex"
+```
+
+The equivalent entry is `node scripts/install.mjs --check-updates`. With no explicit `--home` or `CODEX_HOME`, manual checks use this clone's recorded installation home. Explicit home selections must match that receipt. Read **Checkout**, **Installed prompts** and **Installed Hooks** separately, and use the suggested command's recorded home and Hook selection. The check reads official GitHub metadata with a five-second network limit; `--check` remains the local integrity check. For offline installation, add `--skip-update-check`.
+
+For a requested upgrade, obtain the user's chosen revision manually, then reinstall from that source and run `--check`. For a fork or local edits, merge the wanted upstream changes into that source first. Compare provenance and revisions rather than custom version numbers. A source archive or older receipt can have unknown provenance; retain its recovery data.
+
+Include `--hooks` to update prompts and an installed plugin together. A prompt-only update preserves the old Hook installation and its source record. Source entries describe successful component installations; the first recovery baseline remains intact. After installation, open new sessions and review changed Hook definitions through the native Codex workflow.
 
 ## Restore the previous installation
 

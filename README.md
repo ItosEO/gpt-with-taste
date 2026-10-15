@@ -41,6 +41,8 @@ Both routes install into the active `CODEX_HOME` (otherwise `~/.codex`), write t
 
 With `--hooks`, review and trust the three installed definitions in Codex Desktop under **Settings → Hooks**, or in the interactive terminal with `/hooks`. Enable only the events you want. Open a **new Codex session** after installation.
 
+Check updates with `node scripts/check-updates.mjs`. Installation also checks official metadata before writing; add `--skip-update-check` for offline installation. [Update instructions](docs/install.md#update-or-resolve-a-conflict) cover the installed components and customized checkouts.
+
 Prefer to delegate? Give your coding assistant this repository and [docs/install-for-ai.md](docs/install-for-ai.md). To recover the managed state, use [docs/recovery.md](docs/recovery.md). The complete installation contract is in [docs/install.md](docs/install.md).
 
 ---

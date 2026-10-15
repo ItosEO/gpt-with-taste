@@ -10,8 +10,9 @@
   "type": "module",
   "engines": { "node": ">=22" },
   "scripts": {
-    "test": "node --test scripts/install.test.mjs hooks/steer.test.mjs",
+    "test": "node --test scripts/install.test.mjs scripts/check-updates.test.mjs hooks/steer.test.mjs",
     "test:codex-plugin": "node --test scripts/plugin-install.test.mjs",
+    "check-updates": "node scripts/check-updates.mjs",
     "install:codex": "node scripts/install.mjs"
   }
 }
