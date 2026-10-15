@@ -43,6 +43,16 @@ function childState(event, dataDirectory) {
   const childId = event.agent_id || event.session_id;
   if (!dataDirectory || typeof childId !== 'string' || !childId) return null;
   const directory = path.join(dataDirectory, 'steer-start');
+  // Windows can report ENOENT for a lookup beneath a regular file.
+  for (const location of [dataDirectory, directory]) {
+    let state;
+    try { state = fs.statSync(location); }
+    catch (error) {
+      if (error.code === 'ENOENT') return null;
+      fail('STATE_IO_FAILED', `Cannot read child identity at ${location}: ${error.message}`);
+    }
+    if (!state.isDirectory()) fail('STATE_IO_FAILED', `Child identity requires a directory: ${location}`);
+  }
   const file = path.join(directory, `${encodeURIComponent(childId)}.json`);
   const candidates = [file];
   // Existing installations used a parent/child key for the initial-turn record.

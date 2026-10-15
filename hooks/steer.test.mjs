@@ -193,6 +193,8 @@ test('CLI remembers child session identity without agent_id across startup, foll
     assert.equal(result.code, 0, result.stderr);
     return JSON.parse(result.stdout);
   };
+  const freshMain = await call({hook_event_name: 'UserPromptSubmit', session_id: 'parent', turn_id: 'parent-first'});
+  assert.match(freshMain.hookSpecificOutput.additionalContext, /<gpt-with-taste-user-steer>/);
   const start = await call({hook_event_name: 'SubagentStart', session_id: 'parent', agent_id: 'child', turn_id: 'child-first'});
   assert.match(start.hookSpecificOutput.additionalContext, /<gpt-with-taste-sub-steer>/);
   assert.deepEqual(await call({hook_event_name: 'UserPromptSubmit', session_id: 'child', turn_id: 'child-first', prompt: 'PRIVATE_BODY'}), {continue: true});
@@ -250,10 +252,14 @@ test('CLI known-child inputs report missing turn metadata and unusable identity 
   const missing = await runCli([], JSON.stringify({hook_event_name: 'UserPromptSubmit', session_id: 'child'}), null, environment);
   assert.equal(missing.code, 1); assert.equal(missing.stdout, '');
   assert.match(missing.stderr, /\[MISSING_METADATA\]/);
-  fs.rmSync(data, {recursive: true}); fs.writeFileSync(data, 'not a directory');
-  const unusable = await runCli([], JSON.stringify({hook_event_name: 'UserPromptSubmit', session_id: 'child', turn_id: 'later'}), null, environment);
-  assert.equal(unusable.code, 1); assert.equal(unusable.stdout, '');
-  assert.match(unusable.stderr, /\[STATE_IO_FAILED\]/);
+  for (const blocked of [data, path.join(data, 'steer-start')]) {
+    fs.rmSync(data, {recursive: true});
+    fs.mkdirSync(path.dirname(blocked), {recursive: true});
+    fs.writeFileSync(blocked, 'not a directory');
+    const unusable = await runCli([], JSON.stringify({hook_event_name: 'UserPromptSubmit', session_id: 'child', turn_id: 'later'}), null, environment);
+    assert.equal(unusable.code, 1); assert.equal(unusable.stdout, '');
+    assert.match(unusable.stderr, /\[STATE_IO_FAILED\]/);
+  }
 });
 
 
