@@ -1,6 +1,8 @@
+> Installer vNext: `--update` refreshes all previously installed parts, retains the original Hooks/override mode and adds the standalone `advisor` plus Chinese developer-instruction template. The latter is **never** added automatically to user `config.toml`; see [installation](install.md).
+
 # Prompt map
 
-Default installation preserves Codex's built-in model instructions and copies the bundled prompt files without activating them. Users may manually add selected Taste principles to their own `developer_instructions`; the installer never edits that key. The complete main prompt is opt-in through `--override-base`. The compact subagent role is independently usable when explicitly configured. The three Hook steer files remain optional context reminders, not new role permissions.
+Default installation preserves Codex's built-in model instructions, copies the bundled prompt files without activating them, and installs the independent `advisor` role under `~/.codex/agents/`. Users may manually add selected Taste principles to their own `developer_instructions`; the installer never edits that key. The complete main prompt is opt-in through `--override-base`. The compact subagent role is independently usable when explicitly configured. The three Hook steer files remain optional context reminders, not new role permissions.
 
 ## Choose the source for the reader
 
@@ -8,6 +10,8 @@ Default installation preserves Codex's built-in model instructions and copies th
 | --- | --- | --- |
 | [`prompts/main.md`](../prompts/main.md) | Main base instructions, **only with `--override-base`** | Full alternative prompt for explicit replacement; not used by the native default. |
 | [`prompts/sub.md`](../prompts/sub.md) | Explicitly configured read-only subagent role | Concise, evidence-first research assignment; no edits, implementation or further delegation. |
+| [`prompts/developer.zh-CN.toml`](../prompts/developer.zh-CN.toml) | Chinese manual developer-instruction template | Research and verify premises, require meaningful Advisor criticism and a complete Trade-off report; never auto-injected. |
+| [`agents/advisor.toml`](../agents/advisor.toml) | Codex-discoverable independent review role | Attempt to falsify decisive assumptions; reject evidence-backed blocking flaws, but do not invent objections or rubber-stamp. |
 | [`prompts/user-steer.md`](../prompts/user-steer.md) | Optional reminder near each submitted user request to the main agent | Reconnect the request to the current goal, make ordinary choices, preserve existing usage, and select reader-useful content. |
 | [`prompts/sub-steer.md`](../prompts/sub-steer.md) | Optional reminder with input to a delegated agent | Stay focused on the assigned question, check decisive evidence, and return useful findings. No duplicated read-only rules. |
 | [`prompts/agent-steer.md`](../prompts/agent-steer.md) | Optional reminder when the main agent receives a collaborator message or task result | Reconcile evidence and decide before routing only the missing action-changing information. |

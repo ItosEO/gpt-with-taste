@@ -26,33 +26,40 @@
 
 <a id="install"></a>
 
-## 安装
+## 安装与更新
 
-需要 Node.js **22 或更高版本**。默认只把提示词文件复制到当前 `CODEX_HOME`（未设置时为 `~/.codex`）。**不会修改** `config.toml`、`model_instructions_file` 或 `developer_instructions`。
+需要 Node.js **22+**。默认保留 Codex 原生基础指令，不自动改写 `developer_instructions`。新版会同时安装**中文 Developer Instructions 模板**和**独立的 Advisor 批判审查角色**。
 
 ```sh
 git clone https://github.com/ItosEO/gpt-with-taste.git
 cd gpt-with-taste
-node scripts/install.mjs
+npm test
+node scripts/install.mjs --hooks
+node scripts/install.mjs --check
 ```
 
-需要事件提醒时，执行 `node scripts/install.mjs --hooks`。该模式也**保留 Codex 原生基础指令**。在 Codex Desktop 的 **设置 → 钩子**（或终端 `/hooks`）中审核并信任三个 Hook，然后新开一个会话。
+安装完成后，打开 [中文 Developer Instructions 模板](prompts/developer.zh-CN.toml)，将其中规则手动合并到 `~/.codex/config.toml` 的顶层 `developer_instructions`。安装器会把模板复制到 `~/.codex/prompts/gpt-with-taste/developer.zh-CN.toml`，但**不会自动修改用户配置**；已有同名 TOML 键时不能重复声明。
 
-需要 Taste 的长期行为规则时，由用户手动向 `~/.codex/config.toml` 顶层的 `developer_instructions` 添加选定规则；如该键已经存在，应编辑原值，不要写第二个同名键。例如：
+同时安装 `~/.codex/agents/advisor.toml`：Advisor 会独立质疑主代理的前提，尝试寻找可证伪反例；重大错误可以明确建议拒绝实施，但也不得凭空制造反对意见。它仅做只读审查，不能取代主代理决策。
 
-```toml
-developer_instructions = """
-Make ordinary decisions independently within the user's authorization.
-Prefer maintainable code, meaningful checks and clear, direct explanations.
-Preserve material uncertainty, evidence and important limitations.
-"""
+原有三个 Hooks 和触发条件保持不变。在 Codex Desktop **Settings → Hooks** 或终端 `/hooks` 审核并信任插件后，新建会话。
+
+**已安装上一版时，直接升级：**
+
+```sh
+cd /path/to/gpt-with-taste
+git pull --ff-only
+npm test
+node scripts/install.mjs --update --dry-run
+node scripts/install.mjs --update
+node scripts/install.mjs --check
 ```
 
-如确实需要**完整替换**原生基础指令，显式执行 `node scripts/install.mjs --override-base`（可以同时使用 `--hooks`）。已有旧版覆盖安装若要改用原生模式，应先执行 `--restore`，然后重新安装且不带 `--override-base`。
+`--update` 自动继承原来的 Hooks 和覆盖模式，不会联网执行 `git pull`，并会补齐新版 Advisor、中文模板。若存在内容不同的个人 `advisor.toml`，安装器会安全中止；只有明确使用 `--replace-managed` 才会接管并保存其原始内容。
 
-可用 `--dry-run` 预览、`--check` 检查、`--restore` 恢复。保留克隆目录及其私有的 `.gpt-with-taste/install-receipt.json` 恢复记录。用户已有的权限、MCP、角色和 `AGENTS.md` 不受影响。
+完整覆盖原生基础指令仍然**必须显式使用** `--override-base`。卸载与恢复执行 `node scripts/install.mjs --restore`，需保留原仓库和安装记录。
 
-详细说明：[安装](docs/install.md)、[恢复](docs/recovery.md)、[提示词分层](docs/prompt-map.md)。
+更多说明：[安装](docs/install.md) · [恢复](docs/recovery.md) · [提示词分层](docs/prompt-map.md)。
 
 ---
 

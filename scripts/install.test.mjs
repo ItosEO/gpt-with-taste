@@ -18,6 +18,8 @@ async function fixture(t){
   const root=path.join(dir,'clone'),home=path.join(dir,'Codex Home');await fs.mkdir(home,{recursive:true});
   for(const [name,text]of Object.entries({main:'FIXTURE MAIN — no behavioral claim',sub:'FIXTURE SUB','user-steer':'FIXTURE USER STEER','sub-steer':'FIXTURE SUB STEER','agent-steer':'FIXTURE AGENT STEER'}))await put(path.join(root,`prompts/${name}.md`),text+'\n');
   for(const file of ['hooks/steer.mjs','hooks/local-tools.mjs','plugin/plugin.json','plugin/marketplace.json'])await put(path.join(root,file),await fs.readFile(path.join(repo,file)));
+  await put(path.join(root,'prompts/developer.zh-CN.toml'),await fs.readFile(path.join(repo,'prompts/developer.zh-CN.toml')));
+  await put(path.join(root,'agents/advisor.toml'),await fs.readFile(path.join(repo,'agents/advisor.toml')));
   const state={market:null,plugin:null},calls=[];
   const api={
     async inventory(){calls.push('inventory');return structuredClone(state);},
@@ -81,6 +83,95 @@ test('override flag is install-only',async t=>{
   const f=await fixture(t);
   await assert.rejects(f.call('--override-base','--check'),/install options/);
   await assert.rejects(f.call('--override-base','--restore'),/install options/);
+});
+
+
+test('default install provisions Chinese developer template and discoverable advisor without touching config',async t=>{
+  const f=await fixture(t);
+  const before='model = "gpt-6"\ndeveloper_instructions = "USER CONTROLLED"\n';
+  await put(path.join(f.home,'config.toml'),before);
+  await f.call();
+  assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),before);
+  const advisor=await fs.readFile(path.join(f.home,'agents/advisor.toml'),'utf8');
+  const template=await fs.readFile(path.join(f.home,'prompts/gpt-with-taste/developer.zh-CN.toml'),'utf8');
+  assert.match(advisor,/name = "advisor"/);
+  assert.match(advisor,/不带证据|反迎合|反证/);
+  assert.match(template,/developer_instructions = """/);
+  assert.match(template,/Trade-off/);
+  await f.call('--check');
+  await f.call('--restore');
+  assert.equal(await exists(path.join(f.home,'agents/advisor.toml')),false);
+  assert.equal(await exists(path.join(f.home,'prompts/gpt-with-taste/developer.zh-CN.toml')),false);
+  assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),before);
+});
+
+test('update refreshes previously enabled Hooks and advisor while preserving manual instructions',async t=>{
+  const f=await fixture(t);
+  await f.call('--hooks');
+  const manual='developer_instructions = "manual rules"\n';
+  await put(path.join(f.home,'config.toml'),manual);
+  const original=JSON.parse(await fs.readFile(receipt(f.root)));
+  const updatedAdvisor='name = "advisor"\ndescription = "UPGRADED"\ndeveloper_instructions = """REVIEW"""\n';
+  await put(path.join(f.root,'agents/advisor.toml'),updatedAdvisor);
+  await put(path.join(f.root,'prompts/user-steer.md'),'NEW USER STEER\n');
+  await f.call('--update','--dry-run');
+  assert.notEqual(await fs.readFile(path.join(f.home,'agents/advisor.toml'),'utf8'),updatedAdvisor);
+  await f.call('--update');
+  const current=JSON.parse(await fs.readFile(receipt(f.root)));
+  assert.equal(current.plugin.id,original.plugin.id);
+  assert.equal(current.config.managed,false);
+  assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),manual);
+  assert.equal(await fs.readFile(path.join(f.home,'agents/advisor.toml'),'utf8'),updatedAdvisor);
+  assert.equal(await fs.readFile(path.join(current.plugin.cacheRoot,'prompts/user-steer.md'),'utf8'),'NEW USER STEER\n');
+  await f.call('--check');
+  await f.call('--restore');
+  assert.equal(await exists(path.join(f.home,'agents/advisor.toml')),false);
+  assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),manual);
+});
+
+test('update retains an explicitly installed base override without re-enabling or dropping Hooks',async t=>{
+  const f=await fixture(t);
+  await f.call('--override-base');
+  const config=await fs.readFile(path.join(f.home,'config.toml'),'utf8');
+  await put(path.join(f.root,'prompts/main.md'),'NEW MAIN\n');
+  await f.call('--update');
+  assert.equal(await fs.readFile(path.join(f.home,'config.toml'),'utf8'),config);
+  assert.equal(await fs.readFile(path.join(f.home,'prompts/gpt-with-taste/main.md'),'utf8'),'NEW MAIN\n');
+  assert.equal(f.calls.includes('inventory'),false);
+  await f.call('--restore');
+  assert.equal(await exists(path.join(f.home,'config.toml')),false);
+});
+
+test('update accepts older receipts without the newly introduced managed files',async t=>{
+  const f=await fixture(t);await f.call('--hooks');
+  const data=JSON.parse(await fs.readFile(receipt(f.root)));
+  for(const relative of ['agents/advisor.toml','prompts/gpt-with-taste/developer.zh-CN.toml'])
+    await fs.unlink(path.join(f.home,relative));
+  data.files=data.files.filter(item=>!['agents/advisor.toml','prompts/gpt-with-taste/developer.zh-CN.toml'].includes(item.path));
+  await put(receipt(f.root),JSON.stringify(data));
+  await f.call('--update');await f.call('--check');
+  assert.equal(await exists(path.join(f.home,'agents/advisor.toml')),true);
+  await f.call('--restore');
+});
+
+test('update requires an existing installation and rejects conflicting mode flags',async t=>{
+  const f=await fixture(t);
+  await assert.rejects(f.call('--update'),/No active installation/);
+  await assert.rejects(f.call('--update','--hooks'),/existing installation mode/);
+  await assert.rejects(f.call('--update','--override-base'),/existing installation mode/);
+  await assert.rejects(f.call('--update','--restore'),/install options/);
+});
+
+test('pre-existing user advisor is preserved until explicit replacement, and restored after uninstall',async t=>{
+  const f=await fixture(t);
+  const pathToAdvisor=path.join(f.home,'agents/advisor.toml');
+  const userAdvisor='name = "advisor"\ndescription = "PERSONAL"\n';
+  await put(pathToAdvisor,userAdvisor);
+  await assert.rejects(f.call(),/Unknown managed target already exists/);
+  assert.equal(await fs.readFile(pathToAdvisor,'utf8'),userAdvisor);
+  await f.call('--replace-managed');
+  await f.call('--restore');
+  assert.equal(await fs.readFile(pathToAdvisor,'utf8'),userAdvisor);
 });
 
 test('unknown managed bytes require explicit replacement and restore exactly',async t=>{
