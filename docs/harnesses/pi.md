@@ -17,6 +17,14 @@ Run `/taste status` inside Pi to see the role, selected-model scope decision, st
 
 For persistent project use, copy the **whole** `dist/pi` directory to a new `<project>/.pi/extensions/gpt-with-taste` directory. For user-wide use, the destination is `<agent-dir>/extensions/gpt-with-taste`, normally `~/.pi/agent/extensions/gpt-with-taste`. Pi discovers its `index.js`; restart Pi after copying. Project extensions follow Pi's project-trust controls.
 
+Alternatively, install from this repository's `pi-release` branch, which CI keeps at the latest `master` build with the adapter at the repository root:
+
+```sh
+pi install git:github.com/NB-Corp/gpt-with-taste@pi-release
+```
+
+Branch refs are not pinned: `pi update --extensions` follows new `pi-release` tips. Remove with `pi remove git:github.com/NB-Corp/gpt-with-taste@pi-release`.
+
 Keep only one installation active. Do not also load the reference package or another role entry in that session. This adapter does not need `.pi/APPEND_SYSTEM.md` or `SYSTEM.md`; leave existing files unchanged.
 
 ## Control and recover
