@@ -4,7 +4,17 @@ Use the Pi adapter to add GPT with Taste while retaining Pi's system prompt, too
 
 Requires **Pi 1.2.0+** (`@earendil-works/pi-coding-agent`) and **Node.js 22.19+**. The adapter has no runtime dependencies and makes no extra model calls.
 
-## Enable for one session
+## Install
+
+```sh
+pi install git:github.com/NB-Corp/gpt-with-taste
+```
+
+Pi loads the generated adapter through the repository's root `pi.extensions` entry. Run `/reload` in an existing session after installation, then `/taste status` to see the role, selected-model scope decision, steering state and resource location. The status command does not call a model.
+
+Run `pi update --extensions` when you want the latest committed adapter. Remove it with `pi remove git:github.com/NB-Corp/gpt-with-taste`.
+
+## Try a local build
 
 From this repository:
 
@@ -13,11 +23,9 @@ node scripts/build.mjs --target pi
 pi -e ./dist/pi/index.js
 ```
 
-Run `/taste status` inside Pi to see the role, selected-model scope decision, steering state and resource location. This command does not call a model. Sending a prompt uses your configured provider as usual.
+For a copied project installation, place the **whole** `dist/pi` directory in `<project>/.pi/extensions/gpt-with-taste`. For user-wide use, copy it to `<agent-dir>/extensions/gpt-with-taste`, normally `~/.pi/agent/extensions/gpt-with-taste`, then restart Pi. Project extensions follow Pi's project-trust controls.
 
-For persistent project use, copy the **whole** `dist/pi` directory to a new `<project>/.pi/extensions/gpt-with-taste` directory. For user-wide use, the destination is `<agent-dir>/extensions/gpt-with-taste`, normally `~/.pi/agent/extensions/gpt-with-taste`. Pi discovers its `index.js`; restart Pi after copying. Project extensions follow Pi's project-trust controls.
-
-Keep only one installation active. Do not also load the reference package or another role entry in that session. This adapter does not need `.pi/APPEND_SYSTEM.md` or `SYSTEM.md`; leave existing files unchanged.
+Keep one installation active: use the package, a local `-e` entry or a copied directory. This adapter does not need `.pi/APPEND_SYSTEM.md` or `SYSTEM.md`; leave existing files unchanged.
 
 ## Control and recover
 

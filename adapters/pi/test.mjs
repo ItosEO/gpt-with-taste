@@ -1,8 +1,23 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {consumer, emit, user, assistant, tool, countSteers} from './fixture.mjs';
 
 const fixture = await consumer('pi');
-const {module, sources, files, recipe, api, ctx} = fixture;
+const {module, sources, files, recipe, api, ctx, root} = fixture;
+const manifest = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
+assert.deepEqual(manifest.pi.extensions, ['./dist/pi/index.js']);
+const installed = await import(pathToFileURL(path.resolve(root, manifest.pi.extensions[0])));
+const packageApi = api();
+installed.default(packageApi);
+assert.deepEqual([...packageApi.handlers.keys()], ['context_with_system', 'before_provider_request']);
+assert.ok(packageApi.commands.has('taste'));
+const fromPackage = await emit(packageApi, 'context_with_system', {messages: [
+  {role: 'system', content: '', sections: {host: 'HOST'}}, user,
+]}, ctx);
+assert.ok(fromPackage.messages[0].sections.gpt_with_taste.includes(sources.main));
+assert.ok(fromPackage.messages[2].content.includes(sources.userSteer));
 const pi = api();
 module.default(pi);
 assert.deepEqual([...pi.handlers.keys()], ['context_with_system', 'before_provider_request']);
