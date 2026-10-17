@@ -8,7 +8,7 @@ name: Publish pi-release branch
 
 on:
   push:
-    branches: [master, ci/pi-release]  # TODO: drop ci/pi-release before upstream PR
+    branches: [master]
   workflow_dispatch:
 
 permissions:
