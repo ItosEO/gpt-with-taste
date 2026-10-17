@@ -89,6 +89,17 @@ export function createTasteExtension({role = 'auto', providers = ['openai', 'ope
     });
     pi.registerCommand('taste', {
       description: 'GPT with Taste: status, on, off, steer on, steer off, reset',
+      getArgumentCompletions(argumentPrefix) {
+        const items = [
+          {value: 'status', label: 'status', description: 'Show adapter status'},
+          {value: 'on', label: 'on', description: 'Enable the adapter'},
+          {value: 'off', label: 'off', description: 'Disable the adapter'},
+          {value: 'steer on', label: 'steer on', description: 'Enable steering reminders'},
+          {value: 'steer off', label: 'steer off', description: 'Disable steering reminders'},
+          {value: 'reset', label: 'reset', description: 'Reset branch-local overrides'},
+        ].filter(item => item.value.startsWith(argumentPrefix));
+        return items.length > 0 ? items : null;
+      },
       handler: async (args, ctx) => {
         const command = args.trim() || 'status';
         const state = {...overrides(ctx)};

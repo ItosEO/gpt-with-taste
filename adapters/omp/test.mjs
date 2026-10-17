@@ -6,6 +6,15 @@ import {consumer, emit, user, assistant, tool, countSteers} from '../pi/fixture.
 const {module, sources, files, recipe, api, ctx, output} = await consumer('omp');
 const omp = api();
 module.default(omp);
+const taste = omp.commands.get('taste');
+const complete = taste.getArgumentCompletions;
+const completionValues = prefix => complete(prefix)?.map(item => item.value) ?? null;
+assert.deepEqual(completionValues(''), ['status', 'on', 'off', 'steer on', 'steer off', 'reset']);
+assert.deepEqual(completionValues('st'), ['status', 'steer on', 'steer off']);
+assert.deepEqual(completionValues('steer '), ['steer on', 'steer off']);
+assert.deepEqual(completionValues('steer of'), ['steer off']);
+assert.equal(complete('unknown'), null);
+assert.ok(complete('').every(item => item.label === item.value && item.description));
 assert.deepEqual([...omp.handlers.keys()], ['before_agent_start', 'context', 'tool_result', 'before_provider_request']);
 assert.throws(() => module.default(omp), /only one/);
 assert.equal(omp.handlers.get('context').length, 1);
