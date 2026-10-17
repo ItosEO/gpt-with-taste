@@ -1,0 +1,47 @@
+name: Publish pi-release branch
+
+# Builds the Pi adapter from the recipe and publishes it on the pi-release
+# orphan branch with dist/pi at the repository root, so users can install it
+# directly with:
+#   pi install git:github.com/NB-Corp/gpt-with-taste@pi-release
+# Branches are not pinned, so `pi update --extensions` follows new tips.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pi-release
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build Pi adapter
+        run: node scripts/build.mjs --target pi
+      - name: Publish pi-release orphan branch
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          cp -R dist/pi/. "$work/"
+          cd "$work"
+          git init -q
+          git checkout -q -b pi-release
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "pi adapter build from ${GITHUB_SHA}"
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push -qf origin pi-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
