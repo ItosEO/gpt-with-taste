@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "recipe": {
+    "id": "gpt-with-taste",
+    "version": "0.1.0",
+    "manifest": "recipe/manifest.json"
+  },
+  "target": "omp",
+  "adapter": "adapters/omp/build.mjs",
+  "sources": {
+    "main": "recipe/main.md",
+    "sub": "recipe/sub.md",
+    "independent": "recipe/independent.md",
+    "userSteer": "recipe/user-steer.md",
+    "subSteer": "recipe/sub-steer.md",
+    "agentSteer": "recipe/agent-steer.md"
+  },
+  "files": [
+    "dist/omp/PROVENANCE.md",
+    "dist/omp/THIRD_PARTY_LICENSE",
+    "dist/omp/agent-steer.md",
+    "dist/omp/build-manifest.json",
+    "dist/omp/independent.js",
+    "dist/omp/independent.md",
+    "dist/omp/index.js",
+    "dist/omp/main.md",
+    "dist/omp/package.json",
+    "dist/omp/payload.mjs",
+    "dist/omp/runtime.mjs",
+    "dist/omp/sub-steer.md",
+    "dist/omp/sub.md",
+    "dist/omp/texts.json",
+    "dist/omp/user-steer.md"
+  ]
+}

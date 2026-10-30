@@ -2,16 +2,21 @@
   "name": "gpt-with-taste",
   "version": "0.1.0",
   "private": true,
-  "description": "Better judgment. Better taste. Less ceremony. GPT instructions and source-aware Codex steering.",
+  "description": "Better judgment. Better taste. Less ceremony. One GPT behavior recipe, compiled for your harness.",
   "repository": { "type": "git", "url": "https://github.com/ItosEO/gpt-with-taste.git" },
   "homepage": "https://github.com/ItosEO/gpt-with-taste#readme",
   "bugs": { "url": "https://github.com/ItosEO/gpt-with-taste/issues" },
   "license": "MIT",
   "type": "module",
   "engines": { "node": ">=22" },
+  "pi": { "extensions": ["./dist/pi/index.js"] },
   "scripts": {
-    "test": "node --test scripts/install.test.mjs hooks/steer.test.mjs",
+    "build": "node scripts/build.mjs",
+    "build:check": "node scripts/build.mjs --check",
+    "test": "node --test scripts/install.test.mjs scripts/check-updates.test.mjs hooks/steer.test.mjs scripts/build.test.mjs adapters/claude/claude.test.mjs && node adapters/pi/test.mjs && node adapters/omp/test.mjs",
     "test:codex-plugin": "node --test scripts/plugin-install.test.mjs",
+    "test:dsh": "node --test adapters/dsh/dsh.test.mjs",
+    "check-updates": "node scripts/check-updates.mjs",
     "install:codex": "node scripts/install.mjs"
   }
 }

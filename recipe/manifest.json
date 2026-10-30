@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "gpt-with-taste",
+  "name": "GPT with Taste",
+  "version": "0.1.0",
+  "description": "Better judgment. Better taste. Less ceremony.",
+  "texts": {
+    "main": "main.md",
+    "sub": "sub.md",
+    "independent": "independent.md",
+    "userSteer": "user-steer.md",
+    "subSteer": "sub-steer.md",
+    "agentSteer": "agent-steer.md"
+  },
+  "compatibility": {
+    "kiki": {
+      "version": "1.0.7",
+      "packages": [
+        {
+          "file": "sol.toml",
+          "id": "gpt-6.1-sol-behavior",
+          "name": "GPT-6.1 Sol — 工作方式",
+          "main": "gpt-6.1-sol-main.md",
+          "independent": "gpt-6.1-sol-independent.md",
+          "aliases": ["axon/gpt-6.1-sol"]
+        },
+        {
+          "file": "astra.toml",
+          "id": "gpt-6-astra-behavior",
+          "name": "GPT-6 Astra — 工作方式",
+          "main": "gpt-6-astra-main.md",
+          "independent": "gpt-6-astra-independent.md",
+          "aliases": [
+            "axon/gpt-6-astra",
+            "axon-for-test/gpt-6-astra",
+            "axon/gpt-6-astra-text-recovery"
+          ]
+        }
+      ]
+    }
+  }
+}

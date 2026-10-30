@@ -13,11 +13,11 @@ For native/default and Hook-only installations, the installer never manages or r
 
 Plugin recovery removes `gpt-with-taste@gpt-with-taste-local` and its owned marketplace through Codex's normal remove commands. Review any Hook trust you approved through Codex `/hooks`; the installer does not change trust records. Prompt-only and legacy-only recovery do not require the plugin CLI.
 
-Repeated installs and source updates keep the original recovery baseline. Successful recovery marks the single `.gpt-with-taste/install-receipt.json` as restored. A later install starts a new baseline. The receipt is ignored machine-local state; keep it private and keep the clone until recovery is no longer needed.
+Repeated installs and source updates keep the original recovery baseline. The receipt's `source.prompts` and `source.hooks` entries describe successful component installations; recovery uses the original saved settings and bytes. Older receipts remain usable. Successful recovery marks the single `.gpt-with-taste/install-receipt.json` as restored. A later install starts a new baseline. Keep this private receipt and the clone until recovery is no longer needed. Restore runs locally, including when offline.
 
 ## Older Hook receipts
 
-To migrate a receipt-managed user Hook installation, rerun `node scripts/install.mjs --home "/absolute/path/to/.codex" --hooks`. The installer retires only its recorded event-and-exact-command groups before enabling the plugin, preventing duplicate reminders. Their original recovery values remain in the receipt, and unrelated Hooks stay in place.
+To migrate a receipt-managed user Hook installation, rerun `node scripts/install.mjs --home "/absolute/path/to/.codex" --hooks --override-base` when the earlier receipt owns a base override. The installer retires only its recorded event-and-exact-command groups before enabling the plugin, preventing duplicate reminders. Their original recovery values remain in the receipt, and unrelated Hooks stay in place.
 
 Restore returns those groups to their original pre-install values, not to the intermediate legacy installation. Any matching Hook that existed before the first installation is restored. Original managed file and instruction-line baselines are preserved across migration. You can also restore an old receipt directly without the new plugin sources or Codex plugin CLI.
 

@@ -9,13 +9,14 @@
 </picture>
 
 <p align="center">
-  一套即装即用的 Codex 行为配方：作出常规判断、消化复杂度，并以工程与视觉审美交付工作。<br>
+  一套跨宿主、即装即用的 GPT 行为配方：作出常规判断、消化复杂度，并以工程与视觉审美交付工作。<br>
   面向 GPT 推理家族，尤其是 GPT-6.1 Sol 与 GPT-6 Astra；回复跟随你使用的语言。<br>
   <em>Better judgment. Better taste. Less ceremony.</em>
 </p>
 
 <p align="center">
-  <a href="#install">安装</a> ·
+  <a href="#harnesses">宿主适配</a> ·
+  <a href="#install">安装 Codex</a> ·
   <a href="#what-changes">改变什么</a> ·
   <a href="#featured-case">对照示例</a> ·
   <a href="#how-it-works">工作机制</a> ·
@@ -24,42 +25,56 @@
 
 ---
 
+<a id="harnesses"></a>
+
+## 宿主适配
+
+GPT with Taste 由单一行为配方源编译生成，为各支持宿主提供原生指令与事件提醒：
+
+| 宿主 | 接入形式 | 配置说明 |
+| --- | --- | --- |
+| **OpenAI Codex** | 原生模型指令与 hooks 叠加层 | [docs/install.md](docs/install.md)（或见下方快速安装） |
+| **Claude Code** | Main 指令追加与原生插件（Sub + 3 路 Steer） | [docs/harnesses/claude.md](docs/harnesses/claude.md) |
+| **Kiki** | 原生 Recipe（通用包与 Sol/Astra 兼容包） | [docs/harnesses/kiki.md](docs/harnesses/kiki.md) |
+| **Pi** | 带 payload 防护的请求级扩展 | [docs/harnesses/pi.md](docs/harnesses/pi.md) |
+| **Oh My Pi (OMP)** | 原生身份感知扩展 | [docs/harnesses/omp.md](docs/harnesses/omp.md) |
+| **DeepSeek Harness (dsh)** | 原生 Cordis 插件与请求级提醒 | [docs/harnesses/dsh.md](docs/harnesses/dsh.md) |
+
+要在其他宿主中使用？参考 [docs/harnesses/porting.md](docs/harnesses/porting.md)。维护者在 `recipe/` 中维护统一源，通过编译器适配各个目标。本 Fork 保留中文精简只读子代理及其任务提醒，其他提示词为英文。详见 [docs/authoring.md](docs/authoring.md)。
+
+---
+
 <a id="install"></a>
 
-## 安装与更新
+## 安装 · Codex
 
-需要 Node.js **22+**。默认保留 Codex 原生基础指令，不自动改写 `developer_instructions`。新版会同时安装**中文 Developer Instructions 模板**和**独立的 Advisor 批判审查角色**。
+需要 Node.js **22 或更高版本**。默认只把提示词文件复制到当前 `CODEX_HOME`（未设置时为 `~/.codex`）。**不会修改** `config.toml`、`model_instructions_file` 或 `developer_instructions`。
 
 ```sh
 git clone https://github.com/ItosEO/gpt-with-taste.git
 cd gpt-with-taste
-npm test
-node scripts/install.mjs --hooks
-node scripts/install.mjs --check
+node scripts/install.mjs
 ```
 
-安装完成后，打开 [中文 Developer Instructions 模板](prompts/developer.zh-CN.toml)，将其中规则手动合并到 `~/.codex/config.toml` 的顶层 `developer_instructions`。安装器会把模板复制到 `~/.codex/prompts/gpt-with-taste/developer.zh-CN.toml`，但**不会自动修改用户配置**；已有同名 TOML 键时不能重复声明。
+需要事件提醒时，执行 `node scripts/install.mjs --hooks`。该模式也**保留 Codex 原生基础指令**。在 Codex Desktop 的 **设置 → 钩子**（或终端 `/hooks`）中审核并信任三个 Hook，然后新开一个会话。
 
-同时安装 `~/.codex/agents/advisor.toml`：Advisor 会独立质疑主代理的前提，尝试寻找可证伪反例；重大错误可以明确建议拒绝实施，但也不得凭空制造反对意见。它仅做只读审查，不能取代主代理决策。
+运行 `node scripts/check-updates.mjs` 可手动检查更新。安装前也会查询上游公开元数据；离线安装加 `--skip-update-check`。检查只报告结果，不会执行 Git 拉取或安装。详见[更新说明](docs/install.md#update-conflicts-and-restore)。
 
-原有三个 Hooks 和触发条件保持不变。在 Codex Desktop **Settings → Hooks** 或终端 `/hooks` 审核并信任插件后，新建会话。
+需要 Taste 的长期行为规则时，由用户手动向 `~/.codex/config.toml` 顶层的 `developer_instructions` 添加选定规则；如该键已经存在，应编辑原值，不要写第二个同名键。例如：
 
-**已安装上一版时，直接升级：**
-
-```sh
-cd /path/to/gpt-with-taste
-git pull --ff-only
-npm test
-node scripts/install.mjs --update --dry-run
-node scripts/install.mjs --update
-node scripts/install.mjs --check
+```toml
+developer_instructions = """
+Make ordinary decisions independently within the user's authorization.
+Prefer maintainable code, meaningful checks and clear, direct explanations.
+Preserve material uncertainty, evidence and important limitations.
+"""
 ```
 
-`--update` 自动继承原来的 Hooks 和覆盖模式，不会联网执行 `git pull`，并会补齐新版 Advisor、中文模板。若存在内容不同的个人 `advisor.toml`，安装器会安全中止；只有明确使用 `--replace-managed` 才会接管并保存其原始内容。
+如确实需要**完整替换**原生基础指令，显式执行 `node scripts/install.mjs --override-base`（可以同时使用 `--hooks`）。已有旧版覆盖安装若要改用原生模式，应先执行 `--restore`，然后重新安装且不带 `--override-base`。
 
-完整覆盖原生基础指令仍然**必须显式使用** `--override-base`。卸载与恢复执行 `node scripts/install.mjs --restore`，需保留原仓库和安装记录。
+可用 `--dry-run` 预览、`--check` 检查、`--restore` 恢复。保留克隆目录及其私有的 `.gpt-with-taste/install-receipt.json` 恢复记录。用户已有的权限、MCP、角色和 `AGENTS.md` 不受影响。
 
-更多说明：[安装](docs/install.md) · [恢复](docs/recovery.md) · [提示词分层](docs/prompt-map.md)。
+详细说明：[安装](docs/install.md)、[恢复](docs/recovery.md)、[提示词分层](docs/prompt-map.md)。
 
 ---
 
@@ -98,7 +113,7 @@ GPT with Taste 把判断力用在结果上：作出合理选择、保留有据�
 ## 工作机制
 
 1. **完整主提示词改为可选。** 默认保留 Codex 原生指令；用户可手动追加 Developer Instructions，或显式使用 `--override-base` 完整替换。
-2. **Steer 在输入附近重新强调对应行为。** 本地插件把用户提醒交给主控，把范围内执行提醒交给子 Agent，并在主控取回完成回执后送入成果消费提醒。子 Agent 配对的启动事件只注入一份提醒。具体事件和客户端入口见[安装说明](docs/install.md#add-optional-per-turn-steering)。
+2. **Steer 在受支持的事件处重新强调对应行为。** 本地插件把用户提醒交给主控，把任务提醒交给子 Agent，并在主控收到完成回执或邮箱唤醒后提醒其处理输入。邮箱唤醒不代表任务已完成。配对启动事件只注入一份提醒。后续输入覆盖取决于[客户端入口](docs/install.md#runtime-coverage)。
 
 `prompts/sub.md` 是供指定角色使用的精简只读规则。Hooks 只提供任务提醒，不决定子代理权限；`--hooks` 安装三条提醒路线，但不修改模型基础指令。
 
@@ -113,5 +128,13 @@ GPT with Taste 把判断力用在结果上：作出合理选择、保留有据�
 ---
 
 <p align="center">
-  <a href="LICENSE">MIT 许可证</a> · 社区友链：<a href="https://linux.do/">Linux DO</a>
+  <a href="LICENSE">MIT 许可证</a> · 致谢：<a href="https://github.com/SpadeLushen/pi-gpt-with-taste">SpadeLushen/pi-gpt-with-taste</a> · 社区友链：<a href="https://linux.do/">Linux DO</a>
 </p>
+
+## Advisor 与保留模式更新
+
+默认安装会增加 `agents/advisor.toml` 和 `prompts/developer.zh-CN.toml`。前者安装到 Codex Home 的 `agents/advisor.toml`，用于独立、只读的技术决策审查；后者安装到 `prompts/gpt-with-taste/developer.zh-CN.toml`，供用户手动合并到现有顶层 `developer_instructions`。安装器不会自动修改该指令。
+
+取得并审查新版源码后，运行 `node scripts/install.mjs --update`。该命令保留收据中的 Hooks 和基础指令覆盖模式，并更新 Advisor、模板及其他受管理文件。它不拉取 Git。已有覆盖安装仍保留覆盖；切回原生模式需先恢复，再重装。
+
+同名 Advisor 文件内容不同时，安装器会中止。确认替换时可使用 `--replace-managed`，原文件会保存在恢复记录中。

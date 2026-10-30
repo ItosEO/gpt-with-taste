@@ -1,48 +1,71 @@
-# AI installation contract · ItosEO/gpt-with-taste
+# Install GPT with Taste for a user or coding assistant
 
-Node.js 22+ is required. Use only this repository's supported installer; do not copy a user's authentication, providers or MCP credentials. `CODEX_HOME` defaults to `~/.codex`, and `--home ABSOLUTE_PATH` selects an alternative.
+Use the repository's own installer with Node.js 22+. Preserve existing Codex model instructions by default. Do not create an alternate loader, copy somebody else's Codex config, or install npm dependencies.
 
-## Default behavior
+## Native default
 
-```sh
-node scripts/install.mjs --dry-run
-node scripts/install.mjs --hooks
-node scripts/install.mjs --check
-```
+1. Identify the active absolute Codex home: `CODEX_HOME` or `~/.codex`. Reuse that exact path for all operations.
+2. Read `prompts/main.md`, `prompts/sub.md`, and the [installation contract](install.md).
+3. Preview, install and check:
 
-The default installs managed copies of `prompts/main.md`, `prompts/sub.md`, `prompts/developer.zh-CN.toml`, and `agents/advisor.toml` into Codex Home. The last becomes a discoverable custom agent named `advisor`. The Chinese Developer Instructions remain a *manual* TOML template; **never automatically edit or append to user config.toml**. No default model base override is performed.
+   ```sh
+   node scripts/install.mjs --home "/absolute/path/to/.codex" --dry-run
+   node scripts/install.mjs --home "/absolute/path/to/.codex"
+   node scripts/install.mjs --check --home "/absolute/path/to/.codex"
+   ```
 
-`--hooks` adds the existing three plugin routes, without narrowing event matchers or placing read-only permissions in child Hook reminders. The user's own settings and role contracts remain in force.
+Installation checks public upstream metadata with a five-second total network deadline. Add `--skip-update-check` for offline installation. Keep the user's selected local source; an update report does not authorize replacing a fork with upstream.
 
-## Anti-sycophancy Advisor
+Default installation copies `main.md` and `sub.md` to managed locations. It does **not** write `config.toml`, set `model_instructions_file`, edit `developer_instructions`, or inject either source into Codex. The user adds any selected Taste behavior to their developer instructions **manually**. Never silently replace or merge a pre-existing `developer_instructions` key.
 
-The advisor is a read-only BDFL-style technical critic. It must try to falsify a decisive assumption, give evidence-based blocking objections when necessary, and recommend `通过` (proceed), `修改后再审` (revise) or `拒绝实施` (reject). It must neither rubber-stamp nor fabricate objections. It cannot edit, spawn children or make final decisions. Custom agent instructions do not create an independent read-only OS sandbox.
+## Hooks are independent
 
-## Manual developer instructions
-
-Show the user the contents of `prompts/developer.zh-CN.toml` (installed under `CODEX_HOME/prompts/gpt-with-taste/`) for manual merging into the existing top-level `developer_instructions` value. If the key exists, merge the *contents* of the triple-quoted string, not a second key. The workflow emphasizes deep prerequisite understanding, design review before implementation, targeted experiments, final code review, and an exhaustive concise Trade-off report for engineering work.
-
-## Upgrading an existing installation
-
-Update the checked-out repository first, then use the installer to refresh local managed files and the original feature mode:
+When requested, install the existing three source-aware routes without altering the base instructions:
 
 ```sh
-git pull --ff-only
-npm test
-node scripts/install.mjs --update --dry-run
-node scripts/install.mjs --update
-node scripts/install.mjs --check
+node scripts/install.mjs --hooks --home "/absolute/path/to/.codex" --dry-run
+node scripts/install.mjs --hooks --home "/absolute/path/to/.codex"
+node scripts/install.mjs --check --home "/absolute/path/to/.codex"
 ```
 
-`--update` reads the existing receipt; it automatically preserves whether Hooks were enabled and whether `--override-base` was used. Do **not** add `--hooks` or `--override-base` to `--update`. It does not run `git pull` for the user. Existing prior-version receipts remain compatible: newly introduced managed destinations are safely added with the same collision checks. When an `advisor.toml` file already exists and differs, the installer must fail closed rather than silently overwrite it. Only `--replace-managed` explicitly replaces unknown content, saving its original bytes.
+The plugin wires `UserPromptSubmit`, `SubagentStart` and supported local `wait_agent` `PostToolUse`. The matcher accepts bare, dotted and flattened `multi_agent_v1` / `collaboration` names. Completion receipts and non-timeout mailbox wakes select the Main reminder; a mailbox wake does not prove completion. Retained child identity routes dispatched child inputs, even without `agent_id`. Paired initial inputs are deduplicated once. The reminders do not set role permissions.
 
-Full base prompt replacement remains exclusively opt-in via `--override-base`. Older receipts without `config.managed` indicate a legacy overriding install, which `--update` continues to preserve. To move back to native mode, `--restore` and reinstall without that option.
+Upstream's Codex `0.162.1` probe found that native `followup_task` did not dispatch child `UserPromptSubmit`. Do not claim per-input coverage for that path. See [runtime coverage](install.md#runtime-coverage).
 
-## Restore
+Use `--codex "/absolute/path/to/codex"` if the executable is not on PATH. Have the user review and trust the plugin commands in Codex Desktop **Settings → Hooks** or `/hooks`. `--check` does not confirm trust or runtime event delivery. The tested `0.162.0-alpha.17.2` `exec resume` entry did not dispatch Hook events.
+
+## Explicit full replacement
+
+Only use `--override-base` when the user explicitly asks to replace the Codex model-specific base instructions:
 
 ```sh
-node scripts/install.mjs --restore --dry-run
-node scripts/install.mjs --restore
+node scripts/install.mjs --override-base --home "/absolute/path/to/.codex" --dry-run
+node scripts/install.mjs --override-base --home "/absolute/path/to/.codex"
 ```
 
-Keep the original clone and `.gpt-with-taste/install-receipt.json`. Restoration returns only installer-managed destinations and plugin registration to their original state. Manually edited `developer_instructions` are user-owned and remain untouched. `--check` cannot prove plugin command trust or actual Hook event delivery; review in Codex Desktop Settings → Hooks (or `/hooks`) and verify live.
+Combine it with `--hooks` only when both features are requested. A prior installation that already manages a base override must first be restored before starting a new default/native installation, so that no stale override remains active. Older receipts without `config.managed` are treated as managed for recovery compatibility.
+
+## Selected read-only subagent
+
+`prompts/sub.md` is the complete compact read-only role, kept below twice the length of the user's original instructions. The installer does not attach it to every child. To use it, include it in the selected role's supported `developer_instructions` together with the role's existing contract. Preserve the agent's actual tool permissions and boundaries. Do not rely on role-level `model_instructions_file` without verifying the effective child context; the tested `exec resume` path inherited the main instructions.
+
+## Check, update and recover
+
+Run `node scripts/check-updates.mjs --home "/absolute/path/to/.codex"` from the existing clone for a read-only provenance and update report. It does not fetch, pull or install. For a fork or local changes, merge reviewed upstream changes into the selected source first. Prompt-only refreshes retain the old Hooks and their provenance; include `--hooks` to update both components.
+
+Rerun the same mode to update managed sources. An active override requires `--override-base` on updates, or `--restore` before switching to native mode. Keep the clone and `.gpt-with-taste/install-receipt.json`, which preserves previous managed state.
+
+```sh
+node scripts/install.mjs --restore --home "/absolute/path/to/.codex" --dry-run
+node scripts/install.mjs --restore --home "/absolute/path/to/.codex"
+```
+
+Native/Hook-only recovery never touches user configuration. Explicit override recovery restores the prior `model_instructions_file` setting. Plugin recovery requires a working Codex CLI. Respect drift checks and do not force a conflict; see [recovery](recovery.md).
+
+## Advisor 与保留模式更新
+
+默认安装会增加 `agents/advisor.toml` 和 `prompts/developer.zh-CN.toml`。前者安装到 Codex Home 的 `agents/advisor.toml`，用于独立、只读的技术决策审查；后者安装到 `prompts/gpt-with-taste/developer.zh-CN.toml`，供用户手动合并到现有顶层 `developer_instructions`。安装器不会自动修改该指令。
+
+取得并审查新版源码后，运行 `node scripts/install.mjs --update`。该命令保留收据中的 Hooks 和基础指令覆盖模式，并更新 Advisor、模板及其他受管理文件。它不拉取 Git。已有覆盖安装仍保留覆盖；切回原生模式需先恢复，再重装。
+
+同名 Advisor 文件内容不同时，安装器会中止。确认替换时可使用 `--replace-managed`，原文件会保存在恢复记录中。
