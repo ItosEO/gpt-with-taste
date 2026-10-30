@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "recipe": {
+    "id": "gpt-with-taste",
+    "version": "0.1.0",
+    "manifest": "recipe/manifest.json"
+  },
+  "target": "codex",
+  "adapter": "adapters/codex/build.mjs",
+  "sources": {
+    "main": "recipe/main.md",
+    "sub": "recipe/sub.md",
+    "independent": "recipe/independent.md",
+    "userSteer": "recipe/user-steer.md",
+    "subSteer": "recipe/sub-steer.md",
+    "agentSteer": "recipe/agent-steer.md"
+  },
+  "files": [
+    "dist/codex/agent-steer.md",
+    "dist/codex/build-manifest.json",
+    "dist/codex/independent.md",
+    "dist/codex/main.md",
+    "dist/codex/sub-steer.md",
+    "dist/codex/sub.md",
+    "dist/codex/user-steer.md",
+    "prompts/agent-steer.md",
+    "prompts/main.md",
+    "prompts/sub-steer.md",
+    "prompts/sub.md",
+    "prompts/user-steer.md"
+  ]
+}

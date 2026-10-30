@@ -55,13 +55,17 @@ The three event routes are unchanged:
 | --- | --- |
 | `UserPromptSubmit` | `user-steer.md` for main; later identified child turns receive `sub-steer.md` |
 | `SubagentStart` | `sub-steer.md` for a newly started child; paired initial user event is deduplicated |
-| `PostToolUse` | `agent-steer.md` for main only after local `wait_agent` reports completed results without timeout |
+| `PostToolUse` | `agent-steer.md` for main after a non-timeout local `wait_agent` completion receipt or mailbox wake |
 
-The `PostToolUse` matcher recognizes `wait_agent`, `multi_agent_v1.wait_agent` and `multi_agent_v1wait_agent`. The original task and tool result stay intact. These are additional context reminders; they do not change agent roles or tool permissions. In particular, `sub-steer.md` does not impose read-only restrictions; the chosen role's instructions do.
+The `PostToolUse` matcher recognizes bare `wait_agent` and dotted/flattened `multi_agent_v1` and `collaboration` names. A mailbox wake asks Main to consume input; it is not proof that a child completed. Child identity survives startup deduplication so later dispatched events can route correctly without `agent_id`. Original tasks and results stay intact. These reminders do not change agent roles or tool permissions; read-only restrictions belong to the chosen role.
 
 The plugin is `gpt-with-taste@gpt-with-taste-local`. Codex plugin commands must be available for `--hooks`. If `codex` is not on PATH, use `--codex "/absolute/path/to/codex"`. Open **Settings → Hooks** in Codex Desktop, or run `/hooks`, to inspect and trust the three definitions. An approved definition that changes requires review again. Open a new Codex session.
 
 The previously tested Codex `0.162.0-alpha.17.2` `exec resume` entry did not dispatch plugin events. `--check` confirms managed files and plugin state, **not** actual event delivery or user trust. Runtime verification must use a Codex entry point that dispatches the intended events.
+
+### Runtime coverage
+
+Upstream's Codex `0.162.1` runtime probe observed startup reminders and supported wait-result reminders. Native `followup_task` did not dispatch a child `UserPromptSubmit`, so this path has no per-input reminder guarantee. Keep standing instructions in the selected role; Hook event handling cannot create a missing client event. See the [upstream repair](https://github.com/NB-Corp/gpt-with-taste/pull/3).
 
 ## Optional: replace the model's base instructions
 
@@ -87,7 +91,17 @@ The tested `exec resume` workflow inherited the main base instructions even when
 
 ## Update, conflicts and restore
 
-Update this clone and rerun your chosen command. Include `--hooks` when you want to update installed Hook sources; plain installation does not inspect the plugin. Repeated installs keep the first recovery baseline until restored.
+Check the selected checkout and installed components from this clone:
+
+```sh
+node scripts/check-updates.mjs
+```
+
+The check reads public metadata from `NB-Corp/gpt-with-taste`, with a five-second total network deadline. It compares recorded source revisions rather than package version numbers, reports forks or local changes for manual review, and does not fetch, merge or install. Older receipts may have unknown source provenance. Only this check defaults to the receipt's saved home when neither `--home` nor `CODEX_HOME` is selected.
+
+Update this clone to the reviewed source, then rerun your chosen installation command. Include `--hooks` to refresh installed Hook sources; prompt-only updates retain the previous Hooks and their source record. Keep `--override-base` for an existing override installation. Installation also checks upstream metadata before writing; use `--skip-update-check` to skip the network check. An unavailable check is reported and does not prevent installation from the selected local source. `--check`, `--restore` and `--help` stay offline.
+
+Repeated installs preserve the first recovery baseline. Successful installs record prompt and Hook provenance separately. Maintainers edit `recipe/` and run `npm run build`; generated `prompts/` paths remain the installer entry points.
 
 The installer records state in `.gpt-with-taste/install-receipt.json` inside the clone. For existing managed destination files with unknown different content, review the conflict before using `--replace-managed`; this flag preserves the original bytes for recovery and does not override post-install drift.
 

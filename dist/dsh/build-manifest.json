@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "recipe": {
+    "id": "gpt-with-taste",
+    "version": "0.1.0",
+    "manifest": "recipe/manifest.json"
+  },
+  "target": "dsh",
+  "adapter": "adapters/dsh/build.mjs",
+  "sources": {
+    "main": "recipe/main.md",
+    "sub": "recipe/sub.md",
+    "independent": "recipe/independent.md",
+    "userSteer": "recipe/user-steer.md",
+    "subSteer": "recipe/sub-steer.md",
+    "agentSteer": "recipe/agent-steer.md"
+  },
+  "files": [
+    "dist/dsh/LICENSE",
+    "dist/dsh/build-manifest.json",
+    "dist/dsh/cordis.patch.yml",
+    "dist/dsh/index.mjs",
+    "dist/dsh/package.json",
+    "dist/dsh/texts.json"
+  ]
+}

@@ -6,13 +6,14 @@ Default installation preserves Codex's built-in model instructions and copies th
 
 | Source | Reader and placement | Job |
 | --- | --- | --- |
-| [`prompts/main.md`](../prompts/main.md) | Main base instructions, **only with `--override-base`** | Full alternative prompt for explicit replacement; not used by the native default. |
-| [`prompts/sub.md`](../prompts/sub.md) | Explicitly configured read-only subagent role | Concise, evidence-first research assignment; no edits, implementation or further delegation. |
-| [`prompts/user-steer.md`](../prompts/user-steer.md) | Optional reminder near each submitted user request to the main agent | Reconnect the request to the current goal, make ordinary choices, preserve existing usage, and select reader-useful content. |
-| [`prompts/sub-steer.md`](../prompts/sub-steer.md) | Optional reminder with input to a delegated agent | Stay focused on the assigned question, check decisive evidence, and return useful findings. No duplicated read-only rules. |
-| [`prompts/agent-steer.md`](../prompts/agent-steer.md) | Optional reminder when the main agent receives a collaborator message or task result | Reconcile evidence and decide before routing only the missing action-changing information. |
+| [`recipe/main.md`](../recipe/main.md) | Main base instructions, only with explicit Codex `--override-base` | Full alternative prompt for owning the result, decisions, implementation and delivery. |
+| [`recipe/sub.md`](../recipe/sub.md) | Explicitly configured read-only subagent role | Compact evidence-first research; no edits, implementation or further delegation. |
+| [`recipe/independent.md`](../recipe/independent.md) | An independent host invocation without a parent | Apply role-neutral work principles and complete the current assignment. |
+| [`recipe/user-steer.md`](../recipe/user-steer.md) | Optional reminder near each submitted user request to the main agent | Reconnect the request to the current goal, make ordinary choices, preserve existing usage, and select reader-useful content. |
+| [`recipe/sub-steer.md`](../recipe/sub-steer.md) | Optional reminder with input to a delegated agent | Check decisive evidence and return useful findings within the assigned role. |
+| [`recipe/agent-steer.md`](../recipe/agent-steer.md) | Optional reminder when the main agent receives a collaborator message or task result | Reconcile evidence and decide before routing only the missing action-changing information. |
 
-The main and user/agent steer sources use English; the compact subagent role and subagent steer use Chinese. The files require no base-prompt placeholder, private path, or hidden companion file. Languages in prompts do not override the user's requested output language. The native model prompt and role instructions remain under Codex's own control unless explicitly replaced or configured.
+These are the shared author sources. This fork retains the compact Chinese read-only Sub and task reminder; the other sources are English. [The compiler](authoring.md) generates `dist/<harness>/` and the existing Codex `prompts/` paths from them. All generated Sub roles therefore retain this fork's read-only contract. Each adapter supplies native loading and event interfaces. Instruction language does not override the user's requested output language or persona. Native Codex instructions remain active unless explicitly replaced.
 
 ## Where the capabilities live
 
@@ -35,7 +36,7 @@ The complete main remains available for deliberate experiments with model instru
 
 **Compatibility belongs with implementation.** Preserving an old call means preserving its entry point, data meaning, and conditions of use. New prerequisites belong only to the new capability. Keeping these together prevents a new feature from quietly narrowing established usage.
 
-**Research is conditional, not diminished.** Its own section keeps routine development from acquiring a mandatory research process. Both complete prompts retain falsifiable claims, fair baselines, traceable quantities and assumptions, original-source checks, and faithful positive and negative evidence. The main prompt also retains topic selection and cross-line synthesis. Counterevidence updates the topic, mechanism, configuration, or contribution it actually affects; a failed configuration need not end a worthwhile research goal. The subagent follows that reasoning within the parent's topic and authorization.
+**Research is conditional.** Main retains falsifiable claims, fair baselines, traceable quantities and assumptions, original-source checks, and faithful positive and negative evidence. The compact Sub focuses on traceable findings, fact/inference distinctions and uncertainty. Complex analysis, design and final decisions remain with Main.
 
 **Collaboration centers on ownership and decisions.** The main agent may work directly or delegate according to its actual permissions. The compact read-only subagent does investigation and evidence synthesis without implementation, agent creation or final decisions. The main agent owns integration, code changes, and final acceptance.
 
@@ -45,15 +46,15 @@ The complete main remains available for deliberate experiments with model instru
 
 ## Codex integration decisions
 
-The sources refer to the current Codex tools, schemas, role restrictions, and event behavior rather than naming tools from another host. They do not assume a message wakes or interrupts a recipient, grants approval, or proves consumption. Notification-driven continuation applies when the runtime guarantees completion notifications; waiting follows the supported tool contract and a real dependency. A child resolves its promised dependencies before its final result.
+The Codex adapter retains the existing instruction-file and local-plugin entry points. Shared behavior follows the current runtime's tools, role restrictions, and event semantics. Notification-driven continuation applies when the runtime guarantees completion notifications; waiting follows the supported tool contract and a real dependency. A child resolves its promised dependencies before its final result.
 
 Selecting [optional hooks](install.md#add-optional-per-turn-steering) assembles the single author sources into a local marketplace and installs `gpt-with-taste@gpt-with-taste-local` through the normal Codex plugin CLI. The plugin configures three source-specific routes:
 
-- `UserPromptSubmit`: `user-steer.md` addresses main; a later child turn carrying `agent_id` receives `sub-steer.md`.
-- `SubagentStart`: `sub-steer.md` enters the child alongside its role and task. The session, agent and initial turn IDs suppress the paired first `UserPromptSubmit`, so the child gets one initial reminder.
-- `PostToolUse`: a finite shared name map recognizes `wait_agent`, `multi_agent_v1.wait_agent` and `multi_agent_v1wait_agent`. Main receives `agent-steer.md` when `timed_out` is `false` and the status map contains a `{completed: string}` receipt. The original result stays intact; incomplete, timed-out, not-found, shell/MCP and child-session results select no main reminder.
+- `UserPromptSubmit`: `user-steer.md` addresses main; a child identified by `agent_id` or its recorded child session receives `sub-steer.md`.
+- `SubagentStart`: `sub-steer.md` enters the child alongside its role and task. The child identity and initial turn suppress a matching paired input once. Identity remains available to route later events without assuming parent and child session IDs match.
+- `PostToolUse`: a finite shared map recognizes bare `wait_agent` and dotted/flattened `multi_agent_v1` and `collaboration` names. Main receives `agent-steer.md` for a non-timeout `{completed: string}` status receipt or the current collaboration mailbox wake. The latter asks Main to consume pending input without asserting task completion. Original results stay intact; incomplete, timed-out, not-found, shell/MCP and child-session results select no Main reminder.
 
-`SubagentStop` controls continuation inside the child. Parent follow-ups use the subagent-identified `UserPromptSubmit`; dispatch arguments and automatic completion notifications are left intact. The complete `sub.md` remains available for roles the user chooses.
+`SubagentStop` controls continuation inside the child. Later child inputs are routed only when the client dispatches `UserPromptSubmit`; Codex 0.162.1 native `followup_task` did not dispatch that event in the runtime probe. Dispatch arguments and automatic completion notifications remain intact. The complete `sub.md` remains available for roles the user chooses.
 
 The Windows launcher invokes Node with PowerShell's `&` call operator and reads the official `PLUGIN_ROOT` environment value. Event JSON supplies the consumer and turn identity. Named diagnostics identify missing metadata or source/state failures; optional audit logging never blocks a successful context response. See [installation](install.md#add-optional-per-turn-steering) for setup and trust.
 

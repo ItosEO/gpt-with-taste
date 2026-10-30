@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "models": {
+    "axon/gpt-6.1-sol": "sol.toml",
+    "axon/gpt-6-astra": "astra.toml",
+    "axon-for-test/gpt-6-astra": "astra.toml",
+    "axon/gpt-6-astra-text-recovery": "astra.toml"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "gpt-with-taste-omp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "omp": {
+    "extensions": [
+      "./index.js"
+    ]
+  },
+  "exports": {
+    ".": "./index.js",
+    "./integration": "./runtime.mjs"
+  }
+}

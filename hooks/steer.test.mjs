@@ -122,7 +122,7 @@ test('a child first turn gets Sub once while later parent messages keep their re
 
 test('formal local function names normalize without accepting shell or MCP lookalikes', t => {
   const dir = fixture(t), matcher = new RegExp(WAIT_TOOL_MATCHER);
-  for (const name of ['wait_agent', 'multi_agent_v1.wait_agent', 'multi_agent_v1wait_agent']) {
+  for (const name of ['wait_agent', 'multi_agent_v1.wait_agent', 'multi_agent_v1wait_agent', 'collaboration.wait_agent', 'collaborationwait_agent']) {
     assert.equal(normalizeLocalTool(name), 'wait_agent');
     assert.equal(matcher.test(name), true);
     context({hook_event_name:'PostToolUse',tool_name:name,tool_response:{status:{child:{completed:'whole receipt'}},timed_out:false}}, 'agent', dir);
@@ -183,4 +183,100 @@ test('CLI child routes require plugin state while valid state preserves initial 
   assert.equal(initial.code,0,initial.stderr);assert.deepEqual(JSON.parse(initial.stdout),{continue:true});
   const later=await runCli(['--route','user'],JSON.stringify({...identity,turn_id:'later',hook_event_name:'UserPromptSubmit'}),null,environment);
   assert.equal(later.code,0,later.stderr);assert.match(JSON.parse(later.stdout).hookSpecificOutput.additionalContext,/<gpt-with-taste-sub-steer>/);
+});
+
+test('CLI remembers child session identity without agent_id across startup, followups and child results', async t => {
+  const dir = fixture(t), audit = path.join(dir, 'events.jsonl');
+  const environment = {PLUGIN_DATA: path.join(dir, 'data')};
+  const call = async event => {
+    const result = await runCli([], JSON.stringify(event), audit, environment);
+    assert.equal(result.code, 0, result.stderr);
+    return JSON.parse(result.stdout);
+  };
+  const freshMain = await call({hook_event_name: 'UserPromptSubmit', session_id: 'parent', turn_id: 'parent-first'});
+  assert.match(freshMain.hookSpecificOutput.additionalContext, /<gpt-with-taste-user-steer>/);
+  const start = await call({hook_event_name: 'SubagentStart', session_id: 'parent', agent_id: 'child', turn_id: 'child-first'});
+  assert.match(start.hookSpecificOutput.additionalContext, /<gpt-with-taste-sub-steer>/);
+  assert.deepEqual(await call({hook_event_name: 'UserPromptSubmit', session_id: 'child', turn_id: 'child-first', prompt: 'PRIVATE_BODY'}), {continue: true});
+  for (const turn_id of ['child-second', 'child-third']) {
+    const later = await call({hook_event_name: 'UserPromptSubmit', session_id: 'child', turn_id, prompt: 'parent followup'});
+    assert.match(later.hookSpecificOutput.additionalContext, /<gpt-with-taste-sub-steer>/);
+  }
+  const main = await call({hook_event_name: 'UserPromptSubmit', session_id: 'parent', turn_id: 'parent-later'});
+  assert.match(main.hookSpecificOutput.additionalContext, /<gpt-with-taste-user-steer>/);
+  const receipt = {status: {other: {completed: 'PRIVATE_RESULT'}}, timed_out: false};
+  assert.deepEqual(await call({hook_event_name: 'PostToolUse', session_id: 'child', tool_name: 'wait_agent', tool_response: receipt}), {continue: true});
+  const result = await call({hook_event_name: 'PostToolUse', session_id: 'parent', tool_name: 'wait_agent', tool_response: receipt});
+  assert.match(result.hookSpecificOutput.additionalContext, /<gpt-with-taste-agent-steer>/);
+  const rawAudit = fs.readFileSync(audit, 'utf8');
+  assert.equal(rawAudit.includes('PRIVATE_BODY'), false);
+  assert.equal(rawAudit.includes('PRIVATE_RESULT'), false);
+  for (const record of rawAudit.trim().split('\n').map(JSON.parse)) {
+    assert.equal(typeof record.emitted, 'boolean');
+    assert.equal(record.injected, record.emitted, 'Keep the legacy audit field for existing consumers');
+  }
+});
+
+test('CLI keeps separate child identities and never suppresses a later turn when the paired input was absent', async t => {
+  const dir = fixture(t), environment = {PLUGIN_DATA: path.join(dir, 'data')};
+  const call = async event => {
+    const result = await runCli([], JSON.stringify(event), null, environment);
+    assert.equal(result.code, 0, result.stderr);
+    return JSON.parse(result.stdout);
+  };
+  for (const agent_id of ['one', 'two']) await call({hook_event_name: 'SubagentStart', session_id: 'parent', agent_id, turn_id: 'first'});
+  const later = await call({hook_event_name: 'UserPromptSubmit', session_id: 'one', turn_id: 'later'});
+  assert.match(later.hookSpecificOutput.additionalContext, /<gpt-with-taste-sub-steer>/);
+  assert.deepEqual(await call({hook_event_name: 'UserPromptSubmit', session_id: 'two', turn_id: 'first'}), {continue: true});
+  const followup = await call({hook_event_name: 'UserPromptSubmit', session_id: 'two', turn_id: 'later'});
+  assert.match(followup.hookSpecificOutput.additionalContext, /<gpt-with-taste-sub-steer>/);
+});
+
+test('CLI migrates an existing paired-start record when its explicit child input arrives', async t => {
+  const dir = fixture(t), data = path.join(dir, 'data'), directory = path.join(data, 'steer-start');
+  fs.mkdirSync(directory, {recursive: true});
+  fs.writeFileSync(path.join(directory, 'parent--child.json'), JSON.stringify({turnId: 'first'}));
+  const environment = {PLUGIN_DATA: data};
+  const initial = await runCli([], JSON.stringify({hook_event_name: 'UserPromptSubmit', session_id: 'parent', agent_id: 'child', turn_id: 'first'}), null, environment);
+  assert.equal(initial.code, 0, initial.stderr);
+  assert.deepEqual(JSON.parse(initial.stdout), {continue: true});
+  const later = await runCli([], JSON.stringify({hook_event_name: 'UserPromptSubmit', session_id: 'child', turn_id: 'later'}), null, environment);
+  assert.equal(later.code, 0, later.stderr);
+  assert.match(JSON.parse(later.stdout).hookSpecificOutput.additionalContext, /<gpt-with-taste-sub-steer>/);
+});
+
+test('CLI known-child inputs report missing turn metadata and unusable identity state instead of emitting User', async t => {
+  const dir = fixture(t), data = path.join(dir, 'data'), environment = {PLUGIN_DATA: data};
+  const start = await runCli([], JSON.stringify({hook_event_name: 'SubagentStart', session_id: 'parent', agent_id: 'child', turn_id: 'first'}), null, environment);
+  assert.equal(start.code, 0, start.stderr);
+  const missing = await runCli([], JSON.stringify({hook_event_name: 'UserPromptSubmit', session_id: 'child'}), null, environment);
+  assert.equal(missing.code, 1); assert.equal(missing.stdout, '');
+  assert.match(missing.stderr, /\[MISSING_METADATA\]/);
+  for (const blocked of [data, path.join(data, 'steer-start')]) {
+    fs.rmSync(data, {recursive: true});
+    fs.mkdirSync(path.dirname(blocked), {recursive: true});
+    fs.writeFileSync(blocked, 'not a directory');
+    const unusable = await runCli([], JSON.stringify({hook_event_name: 'UserPromptSubmit', session_id: 'child', turn_id: 'later'}), null, environment);
+    assert.equal(unusable.code, 1); assert.equal(unusable.stdout, '');
+    assert.match(unusable.stderr, /\[STATE_IO_FAILED\]/);
+  }
+});
+
+
+test('current collaboration mailbox wakes get a consumption reminder without asserting a completed receipt', t => {
+  const dir = fixture(t);
+  for (const tool_name of ['collaboration.wait_agent', 'collaborationwait_agent']) {
+    const event = {hook_event_name: 'PostToolUse', tool_name, tool_response: JSON.stringify({message: 'Wait completed.', timed_out: false})};
+    context(event, 'agent', dir);
+    assert.equal(evaluateHook(event, dir).reason, 'MAILBOX_UPDATE');
+  }
+  for (const tool_response of [
+    {message: 'Wait completed.', timed_out: true},
+    {message: 'No agents found.', timed_out: false},
+    {message: 'Wait completed.', timed_out: false, status: {child: {running: true}}},
+  ]) assert.deepEqual(handleHook({hook_event_name: 'PostToolUse', tool_name: 'collaborationwait_agent', tool_response}, dir), {continue: true});
+  for (const tool_name of ['collaborationXwait_agent', 'mcp__collaboration__wait_agent']) {
+    assert.equal(new RegExp(WAIT_TOOL_MATCHER).test(tool_name), false);
+    assert.deepEqual(handleHook({hook_event_name: 'PostToolUse', tool_name, tool_response: {message: 'Wait completed.', timed_out: false}}, dir), {continue: true});
+  }
 });

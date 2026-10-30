@@ -12,7 +12,7 @@
   <rect x="0.75" y="0.75" width="958.5" height="238.5" rx="13" fill="none" stroke="#E6E2D8" stroke-width="1.5"/>
 
   <!-- Masthead kicker -->
-  <text x="64" y="54" class="kicker" fill="#5A606D">SYSTEM INSTRUCTIONS FOR OPENAI CODEX</text>
+  <text x="64" y="54" class="kicker" fill="#5A606D">BEHAVIORAL RECIPE ACROSS HARNESSES</text>
   <text x="896" y="54" text-anchor="end" class="kicker" fill="#C84824">GPT-6.1 SOL · GPT-6 ASTRA</text>
 
   <!-- Masthead double rule -->

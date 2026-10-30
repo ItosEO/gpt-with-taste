@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 import {run} from './install.mjs';
 import {setInstructions} from '../src/toml-overlay.mjs';
+import {WAIT_TOOL_MATCHER} from '../hooks/local-tools.mjs';
 import {hookGroup, installHook, ROUTES} from '../src/hooks-overlay.mjs';
 import {MARKET, MARKET_ROOT, ID, pluginBundle} from '../src/codex-plugin.mjs';
 const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -25,8 +26,9 @@ async function fixture(t){
     async remove(){calls.push('remove');state.plugin=null;await fs.rm(path.join(home,'plugins','cache',MARKET),{recursive:true,force:true});},
     async removeMarket(){calls.push('removeMarket');state.market=null;},
   };
-  const call=(...args)=>run(['--home',home,...args],root,{plugin:api});
-  return {root,home,call,state,calls,api};
+  const services={plugin:api,checkUpdates:async()=>({status:'unavailable',reason:'offline fixture'})};
+  const call=(...args)=>run(['--home',home,...args],root,services);
+  return {root,home,call,state,calls,api,services};
 }
 const original='\uFEFF# local config\r\nmodel = "existing-gpt"\r\nmodel_reasoning_effort = "high"\r\nmodel_instructions_file = \'old/main.md\' # preserve\r\n[model_providers.private]\r\nexperimental_bearer_token = "fixture-secret-not-real"\r\n[agents.worker]\r\nconfig_file = "roles/worker.toml"\r\n[features]\r\nmulti_agent = true\r\n[mcp_servers.local]\r\ncommand = "fixture"\r\n';
 test('prompt-only preserves all other bytes and hooks; no Codex prerequisite; original baseline survives updates',async t=>{
@@ -83,6 +85,32 @@ test('override flag is install-only',async t=>{
   await assert.rejects(f.call('--override-base','--restore'),/install options/);
 });
 
+for (const newline of ['\n', '\r\n']) test(`EOF instruction line accepts an unrelated ${JSON.stringify(newline)} append and restores safely`, async t => {
+  const {home, call} = await fixture(t), config = path.join(home, 'config.toml');
+  const before = 'model_instructions_file = "old/main.md" # original EOF';
+  const added = `${newline}[analytics]${newline}enabled = false${newline}`;
+  await put(config, before);
+  await call('--override-base');
+  await fs.appendFile(config, added);
+  await call('--check');
+  await call('--override-base');
+  const installed = await fs.readFile(config, 'utf8');
+  await put(config, installed.replace('/main.md', '/user-choice.md'));
+  await assert.rejects(call('--check'), /config key has drifted/);
+  await assert.rejects(call('--restore'), /config key has drifted/);
+  await put(config, installed);
+  await call('--restore');
+  assert.equal(await fs.readFile(config, 'utf8'), before + added);
+});
+test('EOF instruction line restores without adding a final newline when nothing was appended', async t => {
+  const {home, call} = await fixture(t), config = path.join(home, 'config.toml');
+  const before = 'model_instructions_file = "old/main.md"';
+  await put(config, before);
+  await call('--override-base');
+  await call('--check');
+  await call('--restore');
+  assert.equal(await fs.readFile(config, 'utf8'), before);
+});
 test('unknown managed bytes require explicit replacement and restore exactly',async t=>{
   const {home,root,call}=await fixture(t);const file=path.join(home,'prompts/gpt-with-taste/main.md'),old=Buffer.from([0,1,255,13,10]);await put(file,old);
   await assert.rejects(call(),/Unknown managed target/);assert.equal(await exists(receipt(root)),false);await call('--replace-managed');await call('--restore');assert.deepEqual(await fs.readFile(file),old);assert.equal(await exists(path.join(home,'config.toml')),false);
@@ -95,7 +123,7 @@ test('plugin bundle installs three routes, leaves all user hooks untouched, upda
   const {root,home,call,state,calls}=await fixture(t);await put(path.join(home,'hooks.json'),'USER HOOK JSON IS NOT OURS');await put(path.join(home,'config.toml'),original);
   await call();await call('--hooks','--dry-run');assert.equal(state.plugin,null);await call('--hooks');assert.equal(state.plugin.enabled,true);assert.equal(await fs.readFile(path.join(home,'config.toml'),'utf8'),original);
   const data=JSON.parse(await fs.readFile(receipt(root)));const hooks=JSON.parse(await fs.readFile(path.join(data.plugin.cacheRoot,'hooks/hooks.json')));
-  assert.deepEqual(Object.keys(hooks.hooks),['UserPromptSubmit','SubagentStart','PostToolUse']);assert.equal(hooks.hooks.PostToolUse[0].matcher,'^(?:wait_agent|multi_agent_v1\\.wait_agent|multi_agent_v1wait_agent)$');assert.equal(hooks.hooks.UserPromptSubmit[0].hooks[0].timeout,15);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,process.platform==='win32'?/\$env:PLUGIN_ROOT/:/\$\{PLUGIN_ROOT\}/);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,/--route user$/);assert.match(hooks.hooks.SubagentStart[0].hooks[0].command,/--route sub$/);assert.match(hooks.hooks.PostToolUse[0].hooks[0].command,/--route agent$/);
+  assert.deepEqual(Object.keys(hooks.hooks),['UserPromptSubmit','SubagentStart','PostToolUse']);assert.equal(hooks.hooks.PostToolUse[0].matcher,WAIT_TOOL_MATCHER);assert.equal(hooks.hooks.UserPromptSubmit[0].hooks[0].timeout,15);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,process.platform==='win32'?/\$env:PLUGIN_ROOT/:/\$\{PLUGIN_ROOT\}/);assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command,/--route user$/);assert.match(hooks.hooks.SubagentStart[0].hooks[0].command,/--route sub$/);assert.match(hooks.hooks.PostToolUse[0].hooks[0].command,/--route agent$/);
   const baseline=await fs.readFile(receipt(root));await call('--hooks');assert.deepEqual(await fs.readFile(receipt(root)),baseline);assert.equal(calls.filter(name=>name==='install').length,1);
   await put(path.join(root,'prompts/user-steer.md'),'UPDATED STEER');await call('--hooks');const updated=JSON.parse(await fs.readFile(receipt(root)));assert.equal(await fs.readFile(path.join(updated.plugin.cacheRoot,'prompts/user-steer.md'),'utf8'),'UPDATED STEER');assert.equal(updated.config.before,data.config.before);
   await fs.appendFile(path.join(home,'config.toml'),'[analytics]\r\nenabled = false\r\n');await call('--check');await call('--restore');assert.equal(state.market,null);assert.equal(state.plugin,null);assert.equal(await fs.readFile(path.join(home,'config.toml'),'utf8'),original+'[analytics]\r\nenabled = false\r\n');assert.equal(await fs.readFile(path.join(home,'hooks.json'),'utf8'),'USER HOOK JSON IS NOT OURS');assert.equal(await exists(path.join(home,MARKET_ROOT,'plugins/gpt-with-taste/hooks/steer.mjs')),false);
@@ -165,4 +193,73 @@ test('Windows generated command invokes Node with plugin paths as data and keeps
     let stdout='',stderr='';child.stdout.on('data',c=>stdout+=c);child.stderr.on('data',c=>stderr+=c);child.on('error',reject);child.on('close',code=>resolve({code,stdout,stderr}));child.stdin.end('{}');
   });
   assert.equal(missing.code,1);assert.equal(missing.stdout,'');assert.match(missing.stderr,/\[LAUNCH_FAILURE\].*PLUGIN_ROOT/);
+});
+
+const sourceA={kind:'official',commit:'a'.repeat(40),dirty:false,version:'999-local'};
+const sourceB={kind:'official',commit:'b'.repeat(40),dirty:false,version:'0.1.0'};
+test('manual update check is read-only, separates checkout and installed prompts/Hooks, and preserves Hooks on prompt-only refresh',async t=>{
+  const f=await fixture(t);let selected=sourceA,seen;
+  f.services.sourceIdentity=async()=>selected;
+  f.services.checkUpdates=async sources=>{seen=structuredClone(sources);return {status:'unavailable',reason:'offline fixture'};};
+  await f.call('--check-updates');assert.equal(await exists(receipt(f.root)),false);assert.equal(await exists(path.join(f.home,'config.toml')),false);
+  await f.call('--hooks');const baseline=JSON.parse(await fs.readFile(receipt(f.root)));
+  assert.deepEqual(baseline.source,{prompts:sourceA,hooks:sourceA});
+  selected=sourceB;await put(path.join(f.root,'prompts/main.md'),'NEW PROMPT');
+  const before=await fs.readFile(receipt(f.root));
+  await f.call('--check-updates');assert.deepEqual(seen,{Checkout:sourceB,'Installed prompts':sourceA,'Installed Hooks':sourceA});
+  assert.deepEqual(await fs.readFile(receipt(f.root)),before);assert.equal(await exists(path.join(f.home,'config.toml')),false);
+  f.calls.length=0;await f.call();assert.deepEqual(f.calls,[]);
+  const updated=JSON.parse(await fs.readFile(receipt(f.root)));assert.deepEqual(updated.source,{prompts:sourceB,hooks:sourceA});
+  await f.call('--check-updates');assert.deepEqual(seen['Installed Hooks'],sourceA);assert.deepEqual(seen['Installed prompts'],sourceB);
+  assert.deepEqual(updated.plugin,baseline.plugin);assert.equal(updated.config.before,baseline.config.before);
+  await f.call('--restore');assert.equal(await exists(path.join(f.home,'config.toml')),false);
+});
+test('failed refresh retains installed provenance and original recovery baseline; first failed install records no source',async t=>{
+  const f=await fixture(t);let selected=sourceA;f.services.sourceIdentity=async()=>selected;
+  await f.call('--hooks');const baseline=JSON.parse(await fs.readFile(receipt(f.root)));
+  selected=sourceB;await put(path.join(f.root,'prompts/main.md'),'NEW MAIN');const install=f.api.install;
+  f.api.install=async root=>{await install(root);throw new Error('PROVENANCE FAILURE');};
+  await assert.rejects(f.call('--hooks'),/PROVENANCE FAILURE/);
+  const pending=JSON.parse(await fs.readFile(receipt(f.root)));assert.equal(pending.status,'applying');assert.deepEqual(pending.source,baseline.source);assert.equal(pending.config.before,baseline.config.before);
+  await f.call('--restore');assert.equal(await exists(path.join(f.home,'config.toml')),false);
+  await assert.rejects(f.call('--hooks'),/PROVENANCE FAILURE/);assert.equal(JSON.parse(await fs.readFile(receipt(f.root))).source,undefined);await f.call('--restore');
+});
+test('offline check still installs; explicit skip, integrity check, help and restore never invoke network check',async t=>{
+  const f=await fixture(t);let calls=0;
+  f.services.checkUpdates=async()=>{calls++;return {status:'unavailable',reason:'timed out after 5000 ms'};};
+  await f.call();assert.equal(calls,1);assert.equal(JSON.parse(await fs.readFile(receipt(f.root))).status,'applied');
+  f.services.checkUpdates=async()=>{throw new Error('MUST NOT CALL NETWORK');};
+  await f.call('--skip-update-check');await f.call('--check');await f.call('--help');await f.call('--restore');
+});
+test('old receipts have unknown provenance and still restore; installed drift is not reported as official-current',async t=>{
+  const f=await fixture(t);f.services.sourceIdentity=async()=>sourceA;await f.call();
+  const legacy=JSON.parse(await fs.readFile(receipt(f.root)));delete legacy.source;await put(receipt(f.root),JSON.stringify(legacy));
+  let seen;f.services.checkUpdates=async sources=>{seen=structuredClone(sources);return {status:'unavailable',reason:'offline'};};
+  await f.call('--check-updates');assert.equal(seen['Installed prompts'],undefined);await f.call('--restore');
+  await f.call();await put(path.join(f.home,'prompts/gpt-with-taste/main.md'),'USER EDIT');await f.call('--check-updates');assert.equal(seen['Installed prompts'].dirty,true);
+});
+
+test('manual update check defaults to saved home without changing install or restore defaults',async t=>{
+  const f=await fixture(t);await f.call();const before=await fs.readFile(receipt(f.root));
+  const previous=process.env.CODEX_HOME;delete process.env.CODEX_HOME;
+  const log=console.log,output=[];console.log=value=>output.push(value);
+  try{
+    await run(['--check-updates'],f.root,f.services);
+    assert.ok(output.some(value=>value.includes(`Selected Codex home: ${f.home}`)));
+    assert.ok(output.some(value=>value.includes(`--home ${JSON.stringify(f.home)}`)));
+    await assert.rejects(run(['--skip-update-check'],f.root,f.services),/Receipt belongs to another home/);
+    await assert.rejects(run(['--restore'],f.root,f.services),/Receipt belongs to another home/);
+    assert.deepEqual(await fs.readFile(receipt(f.root)),before);
+  }finally{console.log=log;if(previous===undefined)delete process.env.CODEX_HOME;else process.env.CODEX_HOME=previous;}
+});
+test('manual update check keeps explicit home and CODEX_HOME binding instead of selecting saved home',async t=>{
+  const f=await fixture(t);await f.call();const before=await fs.readFile(receipt(f.root)),wrong=path.join(f.home,'wrong-target');
+  const previous=process.env.CODEX_HOME;delete process.env.CODEX_HOME;
+  try{
+    await assert.rejects(run(['--check-updates','--home',wrong],f.root,f.services),/Receipt belongs to another home/);
+    process.env.CODEX_HOME=wrong;
+    await assert.rejects(run(['--check-updates'],f.root,f.services),/Receipt belongs to another home/);
+    await run(['--check-updates','--home',f.home],f.root,f.services);
+    assert.deepEqual(await fs.readFile(receipt(f.root)),before);
+  }finally{if(previous===undefined)delete process.env.CODEX_HOME;else process.env.CODEX_HOME=previous;}
 });

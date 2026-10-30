@@ -1,0 +1,43 @@
+schema_version = 1
+id = "gpt-with-taste"
+name = "GPT with Taste"
+version = "0.1.0"
+description = "Better judgment. Better taste. Less ceremony."
+
+[prompts]
+system = { file = "sub.md" }
+steering = { file = "sub-steer.md" }
+steering_on_turn = true
+steering_on_input = true
+steering_interval_steps = 0
+
+[prompts.steering_sources.agent]
+mode = "inherit"
+
+[prompts.main]
+system = { file = "main.md" }
+steering = { file = "user-steer.md" }
+steering_on_turn = true
+steering_on_input = true
+steering_interval_steps = 0
+
+[prompts.main.steering_sources.agent]
+mode = "custom"
+custom = { steering = { file = "agent-steer.md" }, steering_on_turn = true, steering_on_input = true, steering_interval_steps = 0 }
+
+[prompts.main.steering_sources.task]
+mode = "custom"
+custom = { steering = { file = "agent-steer.md" }, steering_on_turn = true, steering_on_input = true, steering_interval_steps = 0 }
+
+[prompts.independent]
+system = { file = "independent.md" }
+steering = "off"
+steering_on_turn = false
+steering_on_input = false
+steering_interval_steps = 0
+
+[prompts.independent.steering_sources.agent]
+mode = "off"
+
+[prompts.independent.steering_sources.task]
+mode = "off"
