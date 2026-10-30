@@ -170,6 +170,8 @@ test('generated compatibility prompts install, check and restore through the exi
   const root = await fixture(t);
   await run(['--target', 'codex'], root);
   for (const dir of ['hooks', 'plugin']) await fs.cp(path.join(repo, dir), path.join(root, dir), {recursive: true});
+  await fs.cp(path.join(repo, 'agents'), path.join(root, 'agents'), {recursive: true});
+  await fs.copyFile(path.join(repo, 'prompts/developer.zh-CN.toml'), path.join(root, 'prompts/developer.zh-CN.toml'));
   const bundle = await pluginBundle(root);
   for (const name of ['user', 'sub', 'agent']) assert.deepEqual(
     bundle.get(`${MARKET_ROOT}/plugins/gpt-with-taste/prompts/${name}-steer.md`),

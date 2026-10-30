@@ -1,3 +1,5 @@
+> 新版安装器：默认会管理 `agents/advisor.toml` 和中文 `prompts/developer.zh-CN.toml` 模板，但不修改用户 `config.toml`。升级时先 `git pull --ff-only`，再执行 `node scripts/install.mjs --update`，保留原有 Hooks 与基础指令覆盖模式。恢复时会把 Advisor 文件恢复到安装前状态，若原本存在个人文件，则恢复原始字节。手动合并的 Developer Instructions 不在安装器恢复范围内。
+
 # Restore the previous Codex instructions
 
 Use the same clone and Codex home that performed the installation. If you installed the optional plugin, its recorded Codex CLI must be available even for the preview; otherwise add `--codex "/absolute/path/to/codex"` to both commands:
@@ -7,7 +9,7 @@ node scripts/install.mjs --restore --home "/absolute/path/to/.codex" --dry-run
 node scripts/install.mjs --restore --home "/absolute/path/to/.codex"
 ```
 
-For native/default and Hook-only installations, the installer never manages or restores `config.toml`; manual `developer_instructions` and other config changes remain untouched. Only explicit `--override-base` installations (and earlier legacy full-replacement receipts) restore the prior `model_instructions_file` line or remove the injected line if it was absent. Managed prompt files, owned plugin files and Hook registrations are restored separately.
+For native/default and Hook-only installations, the installer never manages or restores `config.toml`; manual `developer_instructions` and other config changes remain untouched. The newly managed Advisor file is guarded by the same collision, drift and restoration checks as the bundled prompts. Only explicit `--override-base` installations (and earlier legacy full-replacement receipts) restore the prior `model_instructions_file` line or remove the injected line if it was absent. Managed prompt files, owned plugin files and Hook registrations are restored separately.
 
 Plugin recovery removes `gpt-with-taste@gpt-with-taste-local` and its owned marketplace through Codex's normal remove commands. Review any Hook trust you approved through Codex `/hooks`; the installer does not change trust records. Prompt-only and legacy-only recovery do not require the plugin CLI.
 

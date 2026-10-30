@@ -9,11 +9,12 @@ import {pluginBundle, codexPlugin, assertPluginInventory, MARKET_ROOT, ID} from 
 import {sourceIdentity, checkUpdates, formatUpdateReport} from '../src/update-check.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RECEIPT = '.gpt-with-taste/install-receipt.json';
-const PROMPTS = new Map([['prompts/gpt-with-taste/main.md','prompts/main.md'],['prompts/gpt-with-taste/sub.md','prompts/sub.md']]);
+const PROMPTS = new Map([['prompts/gpt-with-taste/main.md','prompts/main.md'],['prompts/gpt-with-taste/sub.md','prompts/sub.md'],['prompts/gpt-with-taste/developer.zh-CN.toml','prompts/developer.zh-CN.toml'],['agents/advisor.toml','agents/advisor.toml']]);
 const LEGACY_FILES = ['gpt-with-taste/hooks/steer.mjs',...['user','sub','agent'].map(name=>`gpt-with-taste/prompts/${name}-steer.md`)];
 const BUNDLE_PATHS = ['.agents/plugins/marketplace.json','plugins/gpt-with-taste/.codex-plugin/plugin.json','plugins/gpt-with-taste/hooks/steer.mjs','plugins/gpt-with-taste/hooks/local-tools.mjs','plugins/gpt-with-taste/hooks/hooks.json',...['user','sub','agent'].map(name=>`plugins/gpt-with-taste/prompts/${name}-steer.md`)];
 const HELP = `GPT with Taste — Node.js 22+
   node scripts/install.mjs [--home ABSOLUTE_CODEX_HOME] [--hooks] [--override-base] [--dry-run]
+  node scripts/install.mjs --update [--home ABSOLUTE_CODEX_HOME] [--dry-run]
   node scripts/install.mjs --check [--home ABSOLUTE_CODEX_HOME]
   node scripts/install.mjs --check-updates [--home ABSOLUTE_CODEX_HOME]
   node scripts/install.mjs --restore [--home ABSOLUTE_CODEX_HOME] [--dry-run]
@@ -23,10 +24,12 @@ const HELP = `GPT with Taste — Node.js 22+
 Install checks public official GitHub metadata (5-second total network deadline).
 --check verifies installation integrity; --check, --restore and --help stay offline.
 --check-updates is read-only; it never fetches/pulls Git or installs an update.
-Default home: CODEX_HOME, otherwise ~/.codex. Default install: prompt files only; Codex base instructions stay native.
+Default home: CODEX_HOME, otherwise ~/.codex. Default install: prompts, Chinese template and Advisor; Codex base instructions stay native.
 For --check-updates only, an unselected home uses this clone's saved receipt home.
 --override-base explicitly replaces Codex's built-in model instructions with main.md.
 --hooks installs the local marketplace/plugin without overriding model instructions; review its commands in Codex /hooks.
+--update preserves the installed Hooks and base-override mode; it does not pull Git.
+Developer Instructions remain a manual template; config.toml is not edited by default.
 Recovery receipt: ${RECEIPT} in this clone. Keep it until you restore.
 `;
 function fail(message){throw new Error(message);}
@@ -57,11 +60,14 @@ function parse(args){
     else if(arg==='--dry-run')options.dryRun=true;
     else if(arg==='--replace-managed')options.replace=true;
     else if(arg==='--hooks')options.hooks=true;
+    else if(arg==='--update')options.update=true;
     else if(arg==='--override-base')options.overrideBase=true;
     else fail(`Unknown argument: ${arg}`);
   }
   if(!path.isAbsolute(options.home))fail('--home / CODEX_HOME must be an absolute directory');options.home=path.resolve(options.home);
-  if(options.mode!=='install'&&(options.replace||options.hooks||options.overrideBase||options.skipUpdateCheck))fail('--hooks, --override-base, --replace-managed and --skip-update-check are install options');return options;
+  if(options.mode!=='install'&&(options.replace||options.hooks||options.overrideBase||options.skipUpdateCheck||options.update))fail('--hooks, --override-base, --replace-managed --update and --skip-update-check are install options');
+  if(options.update&&(options.hooks||options.overrideBase))fail('--update preserves the existing installation mode; omit --hooks and --override-base');
+  return options;
 }
 async function loadReceipt(file,home,useSavedHome=false){
   const bytes=await read(file);if(bytes===null)return {bytes,receipt:null};let receipt;
@@ -138,6 +144,11 @@ export async function run(args=process.argv.slice(2),root=ROOT,services={}){
   const useSavedHome=options.mode==='check-updates'&&!args.includes('--home')&&!process.env.CODEX_HOME;
   const receiptPath=path.join(root,RECEIPT),saved=await loadReceipt(receiptPath,options.home,useSavedHome),active=saved.receipt&&saved.receipt.status!=='restored'?saved.receipt:null;
   if(useSavedHome&&saved.receipt)options.home=saved.receipt.home;
+  if(options.update){
+    if(!active)fail('No active installation to update. Run install without --update first.');
+    options.hooks=Boolean(active.plugin||receiptHooks(active).length);
+    options.overrideBase=active.config.managed!==false;
+  }
   const api=services.plugin??codexPlugin(options.home,options.codex??active?.plugin?.executable??'codex');
   if(options.mode==='check'){
     if(!active)fail('No active installation receipt in this clone');if(active.status!=='applied')fail('Installation was interrupted; run --restore');

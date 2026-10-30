@@ -61,3 +61,11 @@ The Windows launcher invokes Node with PowerShell's `&` call operator and reads 
 The previously tested Codex `0.162.0-alpha.17.2` `exec resume` entry did not dispatch plugin events. `--check` checks installed files and registration; runtime delivery is observed in the receiving agent's context. Native mode does not gain Hook reminders on entry points that do not dispatch the events.
 
 The delegated role's developer instructions were delivered, while its role-level instruction-file setting did not replace inherited main base instructions in the tested workflow. Compact Sub is a source for chosen role configuration, not an automatically installed child base. Follow [role setup](install.md#use-the-compact-subagent-role-prompt), preserving actual tool boundaries.
+
+## Advisor 与保留模式更新
+
+默认安装会增加 `agents/advisor.toml` 和 `prompts/developer.zh-CN.toml`。前者安装到 Codex Home 的 `agents/advisor.toml`，用于独立、只读的技术决策审查；后者安装到 `prompts/gpt-with-taste/developer.zh-CN.toml`，供用户手动合并到现有顶层 `developer_instructions`。安装器不会自动修改该指令。
+
+取得并审查新版源码后，运行 `node scripts/install.mjs --update`。该命令保留收据中的 Hooks 和基础指令覆盖模式，并更新 Advisor、模板及其他受管理文件。它不拉取 Git。已有覆盖安装仍保留覆盖；切回原生模式需先恢复，再重装。
+
+同名 Advisor 文件内容不同时，安装器会中止。确认替换时可使用 `--replace-managed`，原文件会保存在恢复记录中。

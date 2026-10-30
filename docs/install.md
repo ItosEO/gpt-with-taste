@@ -115,3 +115,11 @@ node scripts/install.mjs --restore
 A native or Hook-only installation restores only files and plugin state that it managed; it **never restores or changes user-edited developer instructions or config.toml**. An installation made with `--override-base` restores its prior `model_instructions_file` value. Plugin restoration requires the recorded Codex CLI (or an explicit `--codex`).
 
 For interrupted operations, local conflicts and earlier receipt formats, see [recovery](recovery.md).
+
+## Advisor 与保留模式更新
+
+默认安装会增加 `agents/advisor.toml` 和 `prompts/developer.zh-CN.toml`。前者安装到 Codex Home 的 `agents/advisor.toml`，用于独立、只读的技术决策审查；后者安装到 `prompts/gpt-with-taste/developer.zh-CN.toml`，供用户手动合并到现有顶层 `developer_instructions`。安装器不会自动修改该指令。
+
+取得并审查新版源码后，运行 `node scripts/install.mjs --update`。该命令保留收据中的 Hooks 和基础指令覆盖模式，并更新 Advisor、模板及其他受管理文件。它不拉取 Git。已有覆盖安装仍保留覆盖；切回原生模式需先恢复，再重装。
+
+同名 Advisor 文件内容不同时，安装器会中止。确认替换时可使用 `--replace-managed`，原文件会保存在恢复记录中。
